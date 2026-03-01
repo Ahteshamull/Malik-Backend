@@ -158,14 +158,6 @@ const userSchema = new Schema(
       type: Number,
       default: 0,
     },
-    collaborations: {
-      type: [String],
-      default: [],
-    },
-    collaborationsTotal: {
-      type: Number,
-      default: 0,
-    },
     responseRate: {
       type: Number,
       default: 0,
@@ -184,11 +176,6 @@ const userSchema = new Schema(
     redeemStars: {
       type: [
         {
-          collaborationId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Collaboration",
-            required: true,
-          },
           stars: {
             type: Number,
             required: true,

@@ -9,7 +9,6 @@ import { notifyAdminOnUserCreated } from "../../notification/service/notificatio
 import fs from "fs";
 import path from "path";
 import Listing from "../../listing/schema/listing.modal.js";
-import Collaborations from "../../collaboration/schema/collaboration.modal.js";
 import Deal from "../../deals/schema/deal.modal.js";
 import Payment from "../../payment/schema/payment.modal.js";
 import Notification from "../../notification/schema/notification.modal.js";
@@ -148,11 +147,7 @@ export const createUser = async (req, res) => {
         await notifyAdminOnUserCreated(user._id, user.name, user.email);
 
         // Populate user data with all information
-        const populatedUser = await userModel
-          .findById(user._id)
-          .select("") // Select all fields
-          .populate("collaborations")
-          .populate("redeemStars.collaborationId");
+        const populatedUser = await userModel.findById(user._id).select(""); // Select all fields
 
         return res.status(201).send({
           success: true,
@@ -192,9 +187,6 @@ export const getMyProfile = async (req, res) => {
     const Deal = (await import("../../deals/schema/deal.modal.js")).default;
     const Listing = (await import("../../listing/schema/listing.modal.js"))
       .Listing;
-    const Collaboration = (
-      await import("../../collaboration/schema/collaboration.modal.js")
-    ).default;
 
     // Filter out deleted/rejected deals
     let activeDeals = [];
@@ -218,18 +210,6 @@ export const getMyProfile = async (req, res) => {
       );
     }
 
-    // Filter out deleted/rejected collaborations
-    let activeCollaborations = [];
-    if (user.collaborations && user.collaborations.length > 0) {
-      const existingCollaborations = await Collaboration.find({
-        _id: { $in: user.collaborations },
-        status: { $ne: "rejected" },
-      }).select("_id");
-      activeCollaborations = existingCollaborations.map((collab) =>
-        collab._id.toString(),
-      );
-    }
-
     // Update user object with filtered arrays and totals
     const filteredUser = {
       ...user.toObject(),
@@ -237,8 +217,6 @@ export const getMyProfile = async (req, res) => {
       dealsTotal: activeDeals.length,
       listings: activeListings,
       listingsTotal: activeListings.length,
-      collaborations: activeCollaborations,
-      collaborationsTotal: activeCollaborations.length,
     };
 
     return res.status(200).json({
@@ -909,24 +887,6 @@ export const deleteUser = async (req, res) => {
       });
     }
 
-    // Check if user has active collaborations
-    const Collaboration = (
-      await import("../../collaboration/schema/collaboration.modal.js")
-    ).default;
-    const activeCollaborations = await Collaboration.find({
-      $or: [{ userId: userId }, { selectInfluencerOrHost: userId }],
-      status: { $in: ["pending", "negotiating", "accepted", "ongoing"] },
-    });
-
-    if (activeCollaborations.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Cannot delete account with active collaborations. Please complete or cancel all active collaborations first.",
-        activeCollaborations: activeCollaborations.length,
-      });
-    }
-
     // Delete user's profile image if exists
     if (user.image && user.image !== "") {
       try {
@@ -942,11 +902,6 @@ export const deleteUser = async (req, res) => {
         // Continue with user deletion even if image deletion fails
       }
     }
-
-    // Delete all user's collaborations
-    await Collaboration.deleteMany({
-      $or: [{ userId: userId }, { selectInfluencerOrHost: userId }],
-    });
 
     // Delete user's deals
     const Deal = (await import("../../deals/schema/deal.modal.js")).default;
@@ -1046,11 +1001,6 @@ export const deleteMyAccount = async (req, res) => {
     await Promise.all([
       // Delete user's listings
       Listing.deleteMany({ userId }),
-
-      // Delete user's collaborations
-      Collaborations.deleteMany({
-        $or: [{ userId }, { selectInfluencerOrHost: userId }],
-      }),
 
       // Delete user's deals
       Deal.deleteMany({ userId }),

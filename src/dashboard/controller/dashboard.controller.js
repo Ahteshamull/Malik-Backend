@@ -1,5 +1,4 @@
 import userModel from "../../auth/schema/auth.modal.js";
-import Collaborations from "../../collaboration/schema/collaboration.modal.js";
 import { Listing } from "../../listing/schema/listing.modal.js";
 import Deal from "../../deals/schema/deal.modal.js";
 import Payment from "../../payment/schema/payment.modal.js";
@@ -7,23 +6,17 @@ import Payment from "../../payment/schema/payment.modal.js";
 export const dashboard = async (req, res) => {
   try {
     // Get all total counts in parallel
-    const [
-      totalUsers,
-      totalCollaborations,
-      totalListings,
-      totalDeals,
-      recentUsers,
-    ] = await Promise.all([
-      userModel.countDocuments({}),
-      Collaborations.countDocuments({}),
-      Listing.countDocuments({}),
-      Deal.countDocuments({}),
-      userModel
-        .find({})
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .select("name email role createdAt"),
-    ]);
+    const [totalUsers, totalListings, totalDeals, recentUsers] =
+      await Promise.all([
+        userModel.countDocuments({}),
+        Listing.countDocuments({}),
+        Deal.countDocuments({}),
+        userModel
+          .find({})
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .select("name email role createdAt"),
+      ]);
 
     res.status(200).json({
       success: true,
@@ -32,7 +25,6 @@ export const dashboard = async (req, res) => {
       data: {
         totals: {
           users: totalUsers,
-          collaborations: totalCollaborations,
           listings: totalListings,
           deals: totalDeals,
         },
@@ -79,10 +71,6 @@ export const userDashboard = async (req, res) => {
 
     // Get all user-specific data in parallel
     const [
-      totalCollaborations,
-      completedCollaborations,
-      ongoingCollaborations,
-      pendingCollaborations,
       totalListings,
       verifiedListings,
       totalDeals,
@@ -95,44 +83,17 @@ export const userDashboard = async (req, res) => {
       totalEarnings,
       monthlyEarnings,
       lastMonthEarnings,
-      collaborationGrowth,
-      recentActivities,
     ] = await Promise.all([
-      Collaborations.countDocuments({
-        $or: [{ userId }, { selectInfluencerOrHost: userId }],
-      }),
-
-      Collaborations.countDocuments({
-        $or: [{ userId }, { selectInfluencerOrHost: userId }],
-        status: "completed",
-      }),
-
-     
-      Collaborations.countDocuments({
-        $or: [{ userId }, { selectInfluencerOrHost: userId }],
-        status: "ongoing",
-      }),
-
-      
-      Collaborations.countDocuments({
-        $or: [{ userId }, { selectInfluencerOrHost: userId }],
-        status: "pending",
-      }),
-
-  
       Listing.countDocuments({ userId }),
-
 
       Listing.countDocuments({ userId, status: "verified" }),
 
-     
       Deal.countDocuments({ userId }),
 
-      
       Payment.aggregate([
         {
           $match: {
-            $or: [{ userId }, { selectInfluencerOrHost: userId }],
+            userId,
             status: { $in: ["SUCCESS", "IN_PROGRESS", "HOLD"] },
           },
         },
@@ -144,11 +105,10 @@ export const userDashboard = async (req, res) => {
         },
       ]),
 
-    
       Payment.aggregate([
         {
           $match: {
-            $or: [{ userId }, { selectInfluencerOrHost: userId }],
+            userId,
             status: { $in: ["SUCCESS", "IN_PROGRESS || HOLD"] },
             createdAt: {
               $gte: new Date(currentYear, currentMonth, 1),
@@ -168,7 +128,7 @@ export const userDashboard = async (req, res) => {
       Payment.aggregate([
         {
           $match: {
-            $or: [{ userId }, { selectInfluencerOrHost: userId }],
+            userId,
             status: { $in: ["SUCCESS", "IN_PROGRESS || HOLD"] },
             createdAt: {
               $gte: new Date(lastMonthYear, lastMonth, 1),
@@ -306,35 +266,6 @@ export const userDashboard = async (req, res) => {
           },
         },
       ]),
-
-      // Collaboration growth (last 6 months)
-      Collaborations.aggregate([
-        {
-          $match: {
-            $or: [{ userId }, { selectInfluencerOrHost: userId }],
-            createdAt: {
-              $gte: new Date(currentYear, currentMonth - 5, 1),
-            },
-          },
-        },
-        {
-          $group: {
-            _id: { $month: "$createdAt" },
-            count: { $sum: 1 },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ]),
-
-      // Recent activities
-      Collaborations.find({
-        $or: [{ userId }, { selectInfluencerOrHost: userId }],
-      })
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .populate("userId", "name email")
-        .populate("selectInfluencerOrHost", "name email")
-        .select("status createdAt negotiationStatus paymentStatus"),
     ]);
 
     // Calculate growth rates
@@ -369,12 +300,6 @@ export const userDashboard = async (req, res) => {
       data: {
         userRole: user.role,
         totals: {
-          collaborations: {
-            total: totalCollaborations,
-            completed: completedCollaborations,
-            ongoing: ongoingCollaborations,
-            pending: pendingCollaborations,
-          },
           listings: {
             total: totalListings,
             verified: verifiedListings,
@@ -397,13 +322,11 @@ export const userDashboard = async (req, res) => {
           },
         },
         monthlyData: {
-          collaborationGrowth,
           currentMonth: new Date().toLocaleString("default", {
             month: "long",
             year: "numeric",
           }),
         },
-        recentActivities,
         meta: {
           lastUpdated: new Date(),
           currency: "USD",

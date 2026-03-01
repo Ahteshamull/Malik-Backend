@@ -8,7 +8,6 @@ import notification from "../notification/routes/index.js";
 import listing from "../listing/routes/index.js";
 import search from "../search/routes/index.js";
 import deal from "../deals/routes/index.js";
-import collaboration from "../collaboration/routes/index.js";
 import message from "../message/routes/index.js";
 import dashboard from "../dashboard/routes/index.js";
 import redeem from "../redeem/routes/index.js";
@@ -20,7 +19,6 @@ import review from "../review/routes/index.js";
 import gift from "../gift/routes/index.js";
 import faq from "../faq/routes/index.js";
 import report from "../report/routes/index.js";
-
 const router = express.Router();
 const baseurl = process.env.BASE_URL || "/api/v1";
 
@@ -33,7 +31,6 @@ router.use(baseurl, notification);
 router.use(baseurl, listing);
 router.use(baseurl, search);
 router.use(baseurl, deal);
-router.use(baseurl, collaboration);
 router.use(baseurl, message);
 router.use(baseurl, dashboard);
 router.use(baseurl, redeem);
@@ -45,7 +42,6 @@ router.use(baseurl, review);
 router.use(baseurl, gift);
 router.use(baseurl, faq);
 router.use(baseurl, report);
-
 // Update code
 router.use(baseurl, (req, res) => {
   return res.status(404).send({

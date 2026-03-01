@@ -1,6 +1,5 @@
 import { Listing } from "../../listing/schema/listing.modal.js";
 import Deal from "../../deals/schema/deal.modal.js";
-import Collaboration from "../../collaboration/schema/collaboration.modal.js";
 import User from "../../auth/schema/auth.modal.js";
 
 const globalSearch = async (req, res) => {
@@ -13,7 +12,7 @@ const globalSearch = async (req, res) => {
       location,
       minPrice,
       maxPrice,
-      searchType = "all", // all, users, listings, deals, collaborations
+      searchType = "all", // all, users, listings, deals
     } = req.query;
 
     const searchRegex = query ? { $regex: query, $options: "i" } : null;
@@ -21,7 +20,6 @@ const globalSearch = async (req, res) => {
       users: [],
       listings: [],
       deals: [],
-      collaborations: [],
       pagination: {
         currentPage: parseInt(page),
         totalPages: 1,
@@ -109,37 +107,9 @@ const globalSearch = async (req, res) => {
       results.deals = deals;
     }
 
-    // Search Collaborations
-    if (searchType === "all" || searchType === "collaborations") {
-      const collaborationFilter = {};
-      if (query) {
-        collaborationFilter.$or = [
-          { payment: searchRegex },
-          { "socialMediaLinks.instagram": searchRegex },
-          { "socialMediaLinks.facebook": searchRegex },
-          { "socialMediaLinks.twitter": searchRegex },
-          { "socialMediaLinks.youtube": searchRegex },
-          { "socialMediaLinks.tiktok": searchRegex },
-        ];
-      }
-
-      const collaborations = await Collaboration.find(collaborationFilter)
-        .populate("userId")
-        .populate("selectInfluencerOrHost")
-        .populate("selectDeal")
-        .sort({ createdAt: -1 })
-        .limit(limit * 1)
-        .skip((page - 1) * limit);
-
-      results.collaborations = collaborations;
-    }
-
     // Calculate total results
     const total =
-      results.users.length +
-      results.listings.length +
-      results.deals.length +
-      results.collaborations.length;
+      results.users.length + results.listings.length + results.deals.length;
     results.pagination.total = total;
     results.pagination.totalPages = Math.ceil(total / limit);
 
@@ -162,7 +132,7 @@ const globalSearch = async (req, res) => {
 const specificSearch = async (req, res) => {
   try {
     const {
-      query: collection = "all", // users | listings | collaborations | deals | all
+      query: collection = "all", // users | listings | deals | all
       searchType: keyword = "", // actual search text
     } = req.query;
 
@@ -173,8 +143,6 @@ const specificSearch = async (req, res) => {
       "user", // singular form
       "listings",
       "listing", // singular form
-      "collaborations",
-      "collaboration", // singular form
       "deals",
       "deal", // singular form
     ];
@@ -193,7 +161,6 @@ const specificSearch = async (req, res) => {
     const results = {
       users: [],
       listings: [],
-      collaborations: [],
       deals: [],
     };
 
@@ -244,51 +211,6 @@ const specificSearch = async (req, res) => {
       });
 
       results.listings = filteredListings;
-    }
-
-    // 🤝 COLLABORATIONS - search if collection is "collaborations" or "all"
-    if (actualCollection === "collaborations" || actualCollection === "all") {
-      const collaborations = await Collaboration.find({})
-        .populate("userId")
-        .populate("selectInfluencerOrHost")
-        .populate("selectDeal")
-        .sort({ createdAt: -1 })
-        .lean();
-
-      // Filter collaborations in JavaScript after population
-      const filteredCollaborations = collaborations.filter((collab) => {
-        if (!keyword) return true;
-
-        const searchTerm = keyword.toLowerCase();
-
-        return (
-          (collab.payment &&
-            collab.payment.toLowerCase().includes(searchTerm)) ||
-          (collab.status && collab.status.toLowerCase().includes(searchTerm))
-        );
-      });
-
-      results.collaborations = filteredCollaborations.map((collab) => {
-        const duration =
-          collab.freeStay && collab.startDate && collab.endDate
-            ? `${Math.ceil(
-                (new Date(collab.endDate) - new Date(collab.startDate)) /
-                  (1000 * 60 * 60 * 24),
-              )} nights`
-            : "N/A";
-
-        return {
-          influencer:
-            collab.selectInfluencerOrHost?.name || collab.userId?.name || "N/A",
-          dealName:
-            collab.selectDeal?.description?.substring(0, 50) + "..." || "N/A",
-          duration,
-          payment: collab.payment,
-          status: collab.status,
-          startDate: collab.startDate,
-          endDate: collab.endDate,
-        };
-      });
     }
 
     // DEALS - search if collection is "deals" or "all"

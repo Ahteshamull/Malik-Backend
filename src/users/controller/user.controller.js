@@ -1,7 +1,6 @@
 import userModel from "../../auth/schema/auth.modal.js";
 import fs from "fs";
 import path from "path";
-import Collaborations from "../../collaboration/schema/collaboration.modal.js";
 
 export const allUser = async (req, res) => {
   try {
@@ -58,87 +57,13 @@ export const singleUser = async (req, res) => {
 
     const userData = await userModel
       .findById(id)
-      .select("-password -confirmPassword -refreshToken")
-      .populate({
-        path: "collaborations",
-        populate: [
-          {
-            path: "userId",
-            select: "name email role",
-          },
-          {
-            path: "selectInfluencerOrHost",
-            select: "name email role",
-          },
-        ],
-      });
+      .select("-password -confirmPassword -refreshToken");
 
     if (!userData) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
-    }
-
-    if (userData.redeemStars && userData.redeemStars.length > 0) {
-      const validRedeemStars = [];
-      for (const redeemStar of userData.redeemStars) {
-        const collaborationExists = await Collaborations.exists({
-          _id: redeemStar.collaborationId,
-        });
-        if (collaborationExists) {
-          validRedeemStars.push(redeemStar);
-        }
-      }
-
-      // Update user with only valid redeemStars
-      if (validRedeemStars.length !== userData.redeemStars.length) {
-        await userModel.findByIdAndUpdate(id, {
-          redeemStars: validRedeemStars,
-        });
-        userData.redeemStars = validRedeemStars;
-      }
-
-      // Populate collaboration details for redeemStars
-      userData.redeemStars = await Promise.all(
-        userData.redeemStars.map(async (redeemStar) => {
-          const collaboration = await Collaborations.findById(
-            redeemStar.collaborationId,
-          )
-            .populate("userId", "name email role")
-            .populate("selectInfluencerOrHost", "name email role");
-
-          return {
-            ...redeemStar.toObject(),
-            collaboration: collaboration
-              ? {
-                  _id: collaboration._id,
-                  status: collaboration.status,
-                  numberOfNights:
-                    collaboration.compensation?.numberOfNights || 0,
-                  payment: collaboration.payment,
-                  createdAt: collaboration.createdAt,
-                  creator: collaboration.userId
-                    ? {
-                        _id: collaboration.userId._id,
-                        name: collaboration.userId.name,
-                        email: collaboration.userId.email,
-                        role: collaboration.userId.role,
-                      }
-                    : null,
-                  target: collaboration.selectInfluencerOrHost
-                    ? {
-                        _id: collaboration.selectInfluencerOrHost._id,
-                        name: collaboration.selectInfluencerOrHost.name,
-                        email: collaboration.selectInfluencerOrHost.email,
-                        role: collaboration.selectInfluencerOrHost.role,
-                      }
-                    : null,
-                }
-              : null,
-          };
-        }),
-      );
     }
 
     // Filter out deleted deals and listings
@@ -177,75 +102,6 @@ export const singleUser = async (req, res) => {
       totalListings = allListings.map((listing) => listing._id.toString());
     }
 
-    // Calculate redeem stars from completed collaborations
-    let totalRedeemStars = 0;
-    const userCompletedCollaborations = await Collaborations.find({
-      status: "completed",
-      $or: [{ userId: userData._id }, { selectInfluencerOrHost: userData._id }],
-    });
-
-    totalRedeemStars = userCompletedCollaborations.reduce(
-      (total, collab) => total + (collab.compensation?.numberOfNights || 0),
-      0,
-    );
-
-    /* =========================
-       2. Collaboration Stats
-    ========================= */
-    const collaborationStats = await Collaborations.aggregate([
-      {
-        $match: {
-          $or: [
-            { userId: userData._id },
-            { selectInfluencerOrHost: userData._id },
-          ],
-        },
-      },
-      {
-        $group: {
-          _id: "$status",
-          count: { $sum: 1 },
-          totalCompensation: { $sum: "$payment" },
-          totalNights: { $sum: "$numberOfNights" },
-          avgCompensation: { $avg: "$payment" },
-          avgNights: { $avg: "$numberOfNights" },
-        },
-      },
-    ]);
-
-    /* =========================
-       3. Completed Details
-    ========================= */
-    const completedCollaborations = await Collaborations.find({
-      status: "completed",
-      $or: [{ userId: userData._id }, { selectInfluencerOrHost: userData._id }],
-    })
-      .populate("selectInfluencerOrHost", "name email role")
-      .populate("userId", "name email role")
-      .select("status payment selectInfluencerOrHost userId");
-
-    /* =========================
-       4. Format Stats
-    ========================= */
-    const stats = {};
-    collaborationStats.forEach((stat) => {
-      stats[stat._id] = {
-        count: stat.count || 0,
-        totalCompensation: stat.totalCompensation || 0,
-        totalNights: stat.totalNights || 0,
-        avgCompensation: stat.avgCompensation || 0,
-        avgNights: stat.avgNights || 0,
-      };
-    });
-
-    const buildStatus = (key) => ({
-      count: stats[key]?.count || 0,
-      totalCompensation: stats[key]?.totalCompensation || 0,
-      totalNights: stats[key]?.totalNights || 0,
-      avgCompensation: stats[key]?.avgCompensation || 0,
-      avgNights: stats[key]?.avgNights || 0,
-    });
-
     /* =========================
        5. Response
     ========================= */
@@ -259,25 +115,10 @@ export const singleUser = async (req, res) => {
         listings: activeListings,
         listingsTotal: activeListings.length,
         totalListings: totalListings.length,
-        collaborationsTotal: userData.collaborations
-          ? userData.collaborations.length
-          : 0,
         completeDealsTotal: userData.completeDeals
           ? userData.completeDeals.length
           : 0,
-        totalRedeemStars: totalRedeemStars,
-        collaborationStats: {
-          total: Object.values(stats).reduce(
-            (sum, s) => sum + (s.count || 0),
-            0,
-          ),
-          pending: buildStatus("pending"),
-          negotiating: buildStatus("negotiating"),
-          accepted: buildStatus("accepted"),
-          ongoing: buildStatus("ongoing"),
-          completed: buildStatus("completed"),
-          rejected: buildStatus("rejected"),
-        },
+        totalRedeemStars: 0,
       },
     });
   } catch (error) {
@@ -787,12 +628,11 @@ export const topInfluencer = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
 
-    // Find top influencers with their collaborations
+    // Find top influencers
     const influencers = await userModel
       .find({ role: "influencer" })
-      .populate("collaborations") // Simple population without selectListing
       .select("") // Select all fields
-      .sort({ collaborationsTotal: -1 })
+      .sort({ createdAt: -1 })
       .limit(limit)
       .skip((page - 1) * limit);
 
@@ -811,14 +651,6 @@ export const topInfluencer = async (req, res) => {
         },
         metadata: {
           totalInfluencers: total,
-          totalCollaborations: influencers.reduce(
-            (sum, inf) => sum + inf.collaborationsTotal,
-            0,
-          ),
-          averageCollaborationsPerInfluencer: (
-            influencers.reduce((sum, inf) => sum + inf.collaborationsTotal, 0) /
-            influencers.length
-          ).toFixed(1),
         },
       },
     });
