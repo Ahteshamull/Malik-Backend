@@ -12,11 +12,9 @@ import { initializeSocket } from "./socket/connection/socket.Connection.js";
 
 const app = express();
 
-
 const server = createServer(app);
 
 const PORT = process.env.PORT || 5000;
-
 
 initializeSocket(server);
 
@@ -26,7 +24,6 @@ app.use(
     credentials: true,
   }),
 );
-
 
 app.use("/api/v1/payment/webhook", express.raw({ type: "application/json" }));
 
@@ -42,7 +39,7 @@ app.get("/", (req, res) => {
   res.json({
     error: false,
     success: true,
-    message: `Welcome to Hostinflu. Server is running on port ${PORT}`,
+    message: `Welcome to malik.  backend Server is running on port ${PORT}`,
     version: "v1",
   });
 });
