@@ -1,0 +1,15 @@
+{
+  "name": "apixora",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Minimal API toolkit for Node.js backends",
+  "main": "src/index.js",
+  "keywords": [
+    "api",
+    "backend",
+    "express",
+    "node"
+  ],
+  "author": "Ahteshamul Hasan",
+  "license": "MIT"
+}

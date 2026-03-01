@@ -1,0 +1,15 @@
+export const success = (res, data = null, message = "Success", code = 200) => {
+  return res.status(code).json({
+    success: true,
+    message,
+    data,
+  });
+};
+
+export const failure = (res, message = "Error", code = 400, errors = null) => {
+  return res.status(code).json({
+    success: false,
+    message,
+    errors,
+  });
+};
