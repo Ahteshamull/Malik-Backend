@@ -39,11 +39,7 @@ app.get("/", (req, res) => {
   res.json({
     error: false,
     success: true,
-<<<<<<< HEAD
-    message: `Welcome to malik  backend Server is running on port ${PORT}`,
-=======
-    message: `Welcome to Malik . Server is running on port ${PORT}`,
->>>>>>> f80aa4a (update all place name malik)
+    message: `Welcome to Malik .The  Server is running on port ${PORT}`,
     version: "v1",
   });
 });
