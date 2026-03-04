@@ -10,9 +10,9 @@ import PasswordReset from "../../auth/schema/passwordReset.modal.js";
 import sendOtp from "../../helper/helpers/sendOtp.js";
 
 // Generate JWT Token
-const generateToken = (id) => {
+const generateToken = (id, role) => {
   return jwt.sign(
-    { id },
+    { id, role },
     process.env.ACCESS_TOKEN_SECRET || process.env.PRV_TOKEN,
     {
       expiresIn: process.env.JWT_EXPIRE || "30d",
@@ -21,9 +21,9 @@ const generateToken = (id) => {
 };
 
 // Generate Refresh Token
-const generateRefreshToken = (id) => {
+const generateRefreshToken = (id, role) => {
   return jwt.sign(
-    { id },
+    { id, role },
     process.env.ACCESS_TOKEN_SECRET || process.env.PRV_TOKEN,
     {
       expiresIn: process.env.REFRESH_TOKEN_EXPIRE || "7d",
@@ -78,8 +78,8 @@ const createAdmin = async (req, res) => {
     });
 
     // Generate tokens
-    const token = generateToken(admin._id);
-    const refreshToken = generateRefreshToken(admin._id);
+    const token = generateToken(admin._id, admin.role);
+    const refreshToken = generateRefreshToken(admin._id, admin.role);
 
     // Save refresh token to database
     admin.refreshToken = refreshToken;
@@ -138,9 +138,19 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    // Generate tokens
-    const token = generateToken(admin._id);
-    const refreshToken = generateRefreshToken(admin._id);
+    // Generate tokens with complete admin information
+    const tokenPayload = {
+      id: admin._id,
+      role: admin.role,
+      name: admin.name,
+      email: admin.email,
+      image: admin.image,
+      phone: admin.phone,
+      createdAt: admin.createdAt,
+    };
+
+    const token = generateToken(admin._id, admin.role);
+    const refreshToken = generateRefreshToken(admin._id, admin.role);
 
     // Save refresh token to database
     admin.refreshToken = refreshToken;
@@ -165,6 +175,7 @@ const adminLogin = async (req, res) => {
         admin,
         token,
         refreshToken,
+        tokenPayload, // Include complete token payload in response
       },
     });
   } catch (error) {
@@ -538,7 +549,6 @@ const resetPasswordAdmin = async (req, res) => {
     });
   }
 };
-
 
 export {
   createAdmin,

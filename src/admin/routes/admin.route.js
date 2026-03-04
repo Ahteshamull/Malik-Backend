@@ -11,7 +11,10 @@ import {
   OTPVerifyAdmin,
   resetPasswordAdmin,
 } from "../controller/admin.controller.js";
-import { upload } from "../../helper/middlewares/imageControlMiddleware.js";
+import {
+  upload,
+  errorCheck,
+} from "../../helper/middlewares/imageControlMiddleware.js";
 import superAdminMiddleware from "../../helper/middlewares/superAdminMiddleware.js";
 import adminMiddleware from "../../helper/middlewares/authmiddleware.js";
 import { authenticateToken } from "../../helper/middlewares/auth.middleware.js";
@@ -23,9 +26,10 @@ const router = express.Router();
 //localhost:3000/api/v1/admin/create-admin
 router.post(
   "/create-admin",
-  authenticateToken,
+  // authenticateToken,
   upload.single("image"),
-  createAdmin
+  errorCheck,
+  createAdmin,
 );
 
 //localhost:3000/api/v1/admin/admin-login
@@ -35,15 +39,21 @@ router.post("/admin-login", adminLogin);
 router.put(
   "/update-admin-personal-info",
   upload.single("image"),
+  errorCheck,
   authenticateToken,
-  updateAdminPersonalInfo
+  updateAdminPersonalInfo,
 );
 
 //localhost:3000/api/v1/admin/change-password
 router.put("/change-password", authenticateToken, adminChangePassword);
 
 //localhost:3000/api/v1/admin/delete-admin/:id
-router.delete("/delete-admin/:id", authenticateToken,superAdminMiddleware, deleteAdmin);
+router.delete(
+  "/delete-admin/:id",
+  authenticateToken,
+  superAdminMiddleware,
+  deleteAdmin,
+);
 
 //localhost:3000/api/v1/admin/all-admins
 router.get("/all-admins", authenticateToken, allAdmin);

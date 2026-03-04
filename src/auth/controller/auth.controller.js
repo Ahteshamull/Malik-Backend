@@ -1068,12 +1068,12 @@ export const shareMyProfile = async (req, res) => {
 
     // Generate shareable links for web and mobile
     const webUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL;
-    const mobileAppUrl = process.env.MOBILE_APP_URL || "hostinflu://profile";
+    const mobileAppUrl = process.env.MOBILE_APP_URL || "malik://profile";
 
     const shareableLinks = {
       web: `${webUrl}/profile/${user.userName}`,
       mobile: `${mobileAppUrl}/${user.userName}`,
-      universal: `https://hostinflu.com/profile/${user.userName}`, // Universal link for both
+      universal: `https://malik.com/profile/${user.userName}`, // Universal link for both
     };
 
     res.status(200).json({
@@ -1085,7 +1085,7 @@ export const shareMyProfile = async (req, res) => {
         platforms: {
           web: webUrl,
           mobile: mobileAppUrl,
-          universal: "https://hostinflu.com",
+          universal: "https://malik.com",
         },
       },
     });

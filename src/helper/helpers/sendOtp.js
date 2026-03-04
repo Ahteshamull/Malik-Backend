@@ -104,14 +104,14 @@ class SendOtp {
         process.env.OTP_EMAIL ||
         process.env.EMAIL_USER,
       to: email,
-      subject: "Password Reset OTP - Hostinflu",
+      subject: "Password Reset OTP - Malik",
       html: emailTemplate_verify(otp),
       text: `
-Password Reset OTP - Hostinflu
+Password Reset OTP - Malik
 
 Hello ${userName}!
 
-We received a request to reset your password for your Hostinflu account.
+We received a request to reset your password for your Malik account.
 
 Your OTP Code: ${otp}
 
@@ -149,7 +149,7 @@ Security Notice:
         process.env.OTP_EMAIL ||
         process.env.EMAIL_USER,
       to: email,
-      subject: "Password Reset Successful - Hostinflu",
+      subject: "Password Reset Successful - Malik",
       html: `
         <!DOCTYPE html>
         <html>
