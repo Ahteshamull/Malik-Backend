@@ -39,7 +39,7 @@ app.get("/", (req, res) => {
   res.json({
     error: false,
     success: true,
-    message: `Welcome to malik  backend Server is running on port ${PORT}`,
+    message: `Welcome to malik . The backend Server is running on port ${PORT}`,
     version: "v1",
   });
 });
