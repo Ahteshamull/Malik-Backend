@@ -30,19 +30,6 @@ const userSchema = new Schema(
     phone: {
       type: String,
     },
-    userName: {
-      type: String,
-      unique: true,
-      required: [true, "Username is required"],
-      trim: true,
-      lowercase: true,
-      minlength: [5, "Username must be at least 5 characters"],
-      maxlength: [20, "Username must not exceed 20 characters"],
-      match: [
-        /^[a-z0-9_]+$/,
-        "Username can only contain lowercase letters, numbers, and underscore (_)",
-      ],
-    },
     country: {
       type: String,
     },
@@ -58,8 +45,9 @@ const userSchema = new Schema(
     fullAddress: {
       type: String,
     },
-    dateOfBirth: {
-      type: Date,
+    ageRange: {
+      type: String,
+      enum: ["18-25", "26-35", "36-45", "46-55", "56-65", "65+"],
     },
     gender: {
       type: String,
@@ -79,120 +67,10 @@ const userSchema = new Schema(
     refreshToken: {
       type: String,
     },
-    // airbnbAccountLinked: {
-    //   type: Boolean,
-    //   default: false,
-    // },
-
-    airbnbAccount: {
-      type: String,
-    },
-    bio: {
-      type: String,
-    },
-    socialMediaLinks: [
-      {
-        platform: {
-          type: String,
-          enum: ["facebook", "instagram", "x", "youtube", "tiktok"],
-        },
-        url: {
-          type: String,
-        },
-        followers: {
-          type: String,
-        },
-      },
-    ],
-
-    isFounderMember: {
-      type: Boolean,
-      default: true,
-    },
-
-    isNoMember: {
-      type: Number,
-      default: 0,
-    },
-
-    totalUsersAtRegistration: {
-      type: Number,
-      default: 0,
-    },
-
-    nicheTags: {
-      type: [String],
-      enum: [
-        "Tech",
-        "Fashion",
-        "Fitness",
-        "Beauty",
-        "Travel",
-        "Lifestyle",
-        "Food",
-      ],
-      default: [],
-    },
-    deals: {
-      type: [String],
-      default: [],
-    },
-    dealsTotal: {
-      type: Number,
-      default: 0,
-    },
-    completeDeals: {
-      type: [String],
-      default: [],
-    },
-    completeDealsTotal: {
-      type: Number,
-      default: 0,
-    },
-
-    listings: {
-      type: [String],
-      default: [],
-    },
-    listingsTotal: {
-      type: Number,
-      default: 0,
-    },
-    responseRate: {
-      type: Number,
-      default: 0,
-    },
-    avgResponseTime: {
-      type: Number,
-      default: 0,
-    },
     dateOfBirth: {
       type: String,
     },
-    issn: {
-      type: Boolean,
-      default: false,
-    },
-    redeemStars: {
-      type: [
-        {
-          stars: {
-            type: Number,
-            required: true,
-          },
-          createdAt: {
-            type: Date,
-            default: Date.now,
-          },
-        },
-      ],
-      default: [],
-    },
-
-    nightCredits: {
-      type: Number,
-      default: 0,
-    },
+ 
     totalReviews: {
       type: Number,
       default: 0,
@@ -205,9 +83,7 @@ const userSchema = new Schema(
       type: String,
       default: "active",
     },
-    referralCode: { type: String, unique: true },
-    referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    referralCount: { type: Number, default: 0 },
+
     stripeAccountId: { type: String },
     isStripeConnected: { type: Boolean, default: false },
   },

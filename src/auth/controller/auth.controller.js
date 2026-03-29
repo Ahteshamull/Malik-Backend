@@ -8,11 +8,8 @@ import sendOtp from "../../helper/helpers/sendOtp.js";
 import { notifyAdminOnUserCreated } from "../../notification/service/notification.service.js";
 import fs from "fs";
 import path from "path";
-import Listing from "../../listing/schema/listing.modal.js";
-import Deal from "../../deals/schema/deal.modal.js";
 import Payment from "../../payment/schema/payment.modal.js";
 import Notification from "../../notification/schema/notification.modal.js";
-import Message from "../../message/schema/message.modal.js";
 
 export const createUser = async (req, res) => {
   // Handle form data where fields might be in different locations
@@ -183,40 +180,13 @@ export const getMyProfile = async (req, res) => {
       });
     }
 
-    // Import models to filter out deleted/rejected items
-    const Deal = (await import("../../deals/schema/deal.modal.js")).default;
-    const Listing = (await import("../../listing/schema/listing.modal.js"))
-      .Listing;
-
-    // Filter out deleted/rejected deals
-    let activeDeals = [];
-    if (user.deals && user.deals.length > 0) {
-      const existingDeals = await Deal.find({
-        _id: { $in: user.deals },
-        status: { $ne: "rejected" },
-      }).select("_id");
-      activeDeals = existingDeals.map((deal) => deal._id.toString());
-    }
-
-    // Filter out deleted/rejected listings
-    let activeListings = [];
-    if (user.listings && user.listings.length > 0) {
-      const existingListings = await Listing.find({
-        _id: { $in: user.listings },
-        status: { $ne: "rejected" },
-      }).select("_id");
-      activeListings = existingListings.map((listing) =>
-        listing._id.toString(),
-      );
-    }
-
-    // Update user object with filtered arrays and totals
+    // Update user object
     const filteredUser = {
       ...user.toObject(),
-      deals: activeDeals,
-      dealsTotal: activeDeals.length,
-      listings: activeListings,
-      listingsTotal: activeListings.length,
+      deals: [],
+      dealsTotal: 0,
+      listings: [],
+      listingsTotal: 0,
     };
 
     return res.status(200).json({
