@@ -13,6 +13,7 @@ import {
   currentUserLogin,
   deleteUser,
   deleteMyAccount,
+  verifyRegistration,
 } from "../controller/auth.controller.js";
 import { authenticateToken } from "../../helper/middlewares/auth.middleware.js";
 import {
@@ -23,6 +24,8 @@ import {
 const router = express.Router();
 //localhost:3000/api/v1/auth/create-user
 router.post("/create-user", createUser);
+//localhost:3000/api/v1/auth/verify-registration
+router.post("/verify-registration", verifyRegistration);
 //localhost:3000/api/v1/auth/login
 router.post("/login", login);
 //localhost:3000/api/v1/auth/logout

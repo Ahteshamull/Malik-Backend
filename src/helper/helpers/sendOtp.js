@@ -142,6 +142,47 @@ Security Notice:
     }
   }
 
+  async sendRegistrationOTP(email, otp, userName = "User") {
+    const mailOptions = {
+      from:
+        process.env.EMAIL_FROM ||
+        process.env.OTP_EMAIL ||
+        process.env.EMAIL_USER,
+      to: email,
+      subject: "Verify Your Account - Caribee",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family:Arial;background:#f4f6f8;padding:20px">
+          <div style="max-width:600px;margin:auto;background:#fff;border-radius:8px;padding:30px">
+            <h2 style="color:#4f46e5">👋 Welcome to Caribee, ${userName}!</h2>
+            <p>Thank you for registering. Please verify your email to activate your account.</p>
+            <p>Your verification code:</p>
+            <h1 style="background:#4f46e5;color:#fff;display:inline-block;padding:10px 20px;border-radius:6px;letter-spacing:8px">
+              ${otp}
+            </h1>
+            <p>This code will expire in <strong>10 minutes</strong>.</p>
+            <p style="color:#777;font-size:13px">
+              If you did not create an account, please ignore this email.
+            </p>
+            <hr />
+            <p style="font-size:12px;color:#999">© ${new Date().getFullYear()} Caribee</p>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+
+    try {
+      const transporter = this.getTransporter();
+      const result = await transporter.sendMail(mailOptions);
+      return { success: true, messageId: result.messageId };
+    } catch (error) {
+      console.error("❌ Failed to send registration OTP email:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async sendPasswordResetConfirmation(email, userName = "User") {
     const mailOptions = {
       from:

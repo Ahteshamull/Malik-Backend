@@ -55,17 +55,23 @@ export const createUser = async (req, res) => {
   // Check if email already exists
   const existingUser = await userModel.findOne({ email: normalizedEmail });
   if (existingUser) {
-    return res.status(409).send({
-      error: true,
-      message: "Email Already In Use",
-    });
+    // If user exists but is not verified, delete and re-register
+    if (!existingUser.isVerify) {
+      await userModel.findByIdAndDelete(existingUser._id);
+    } else {
+      return res.status(409).send({
+        error: true,
+        message: "Email Already In Use",
+      });
+    }
   }
 
   const normalizedUserName = userName.trim().toLowerCase();
 
-  // Check if userName already exists to prevent MongoDB E11000 crash
+  // Check if userName already exists
   const existingUserName = await userModel.findOne({
     userName: normalizedUserName,
+    isVerify: true,
   });
   if (existingUserName) {
     return res.status(409).send({
@@ -77,33 +83,36 @@ export const createUser = async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 10);
 
+    // Generate 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
     const user = new userModel({
       userName: normalizedUserName,
       email: normalizedEmail,
       password: hash,
-      confirmPassword: hash, // Hashed confirmPassword
+      confirmPassword: hash,
       phone,
       country,
       experience,
       ageRange,
       gender,
       travelStyle,
+      isVerify: false,
+      registrationOtp: hashedOtp,
+      otpExpiry,
     });
 
     await user.save();
 
-    // Send notification to admin about new user registration
-    await notifyAdminOnUserCreated(user._id, user.userName, user.email);
+    // Send OTP to user's email
+    await sendOtp.sendRegistrationOTP(normalizedEmail, otp, normalizedUserName);
 
-    // Populate user data without passwords
-    const populatedUser = await userModel
-      .findById(user._id)
-      .select("-password -confirmPassword");
-
-    return res.status(201).send({
+    return res.status(200).send({
       success: true,
-      message: "User Created Successfully",
-      data: populatedUser,
+      message: "A 4-digit verification code has been sent to your email. Please verify to activate your account.",
+      data: { email: normalizedEmail },
     });
   } catch (error) {
     return res.status(500).send({
@@ -112,6 +121,73 @@ export const createUser = async (req, res) => {
     });
   }
 };
+
+export const verifyRegistration = async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({
+      error: true,
+      message: "Email and OTP are required",
+    });
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const user = await userModel.findOne({ email: normalizedEmail });
+
+  if (!user) {
+    return res.status(404).json({
+      error: true,
+      message: "User not found. Please register first.",
+    });
+  }
+
+  if (user.isVerify) {
+    return res.status(400).json({
+      error: true,
+      message: "This account is already verified. Please login.",
+    });
+  }
+
+  // Check OTP expiry
+  if (!user.otpExpiry || new Date() > user.otpExpiry) {
+    return res.status(400).json({
+      error: true,
+      message: "OTP has expired. Please register again.",
+    });
+  }
+
+  // Verify OTP
+  const isOtpValid = await bcrypt.compare(otp.toString(), user.registrationOtp);
+
+  if (!isOtpValid) {
+    return res.status(400).json({
+      error: true,
+      message: "Invalid OTP. Please try again.",
+    });
+  }
+
+  // Activate account
+  user.isVerify = true;
+  user.registrationOtp = undefined;
+  user.otpExpiry = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  // Notify admin
+  await notifyAdminOnUserCreated(user._id, user.userName, user.email);
+
+  const populatedUser = await userModel
+    .findById(user._id)
+    .select("-password -confirmPassword -registrationOtp -otpExpiry");
+
+  return res.status(201).json({
+    success: true,
+    message: "Account verified and created successfully! You can now login.",
+    data: populatedUser,
+  });
+};
+
 
 export const getMyProfile = async (req, res) => {
   // User ID should be available in req.user from auth middleware
@@ -173,6 +249,14 @@ export const login = async (req, res) => {
     return res.status(404).json({
       error: true,
       message: "You don't have any account",
+    });
+  }
+
+  // Block unverified accounts
+  if (!existingUser.isVerify) {
+    return res.status(403).json({
+      error: true,
+      message: "Please verify your email before logging in. Check your inbox for the verification code.",
     });
   }
 

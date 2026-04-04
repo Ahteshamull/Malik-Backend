@@ -28,6 +28,16 @@ const userSchema = new Schema(
     otp: {
       type: Number,
     },
+    isVerify: {
+      type: Boolean,
+      default: false,
+    },
+    registrationOtp: {
+      type: String,
+    },
+    otpExpiry: {
+      type: Date,
+    },
     phone: {
       type: String,
     },
