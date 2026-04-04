@@ -88,6 +88,20 @@ export const createUser = async (req, res) => {
     const hashedOtp = await bcrypt.hash(otp, 10);
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
+    // Validate travelStyle array
+    const validTravelStyles = [
+      "Relaxed & familiar",
+      "Adventurous",
+      "Culture & heritage",
+      "Nightlife & social",
+      "Off the beaten path",
+    ];
+    const travelStyleArray = Array.isArray(travelStyle)
+      ? travelStyle.filter((s) => validTravelStyles.includes(s))
+      : travelStyle && validTravelStyles.includes(travelStyle)
+      ? [travelStyle]
+      : [];
+
     const user = new userModel({
       userName: normalizedUserName,
       email: normalizedEmail,
@@ -98,7 +112,7 @@ export const createUser = async (req, res) => {
       experience,
       ageRange,
       gender,
-      travelStyle,
+      travelStyle: travelStyleArray,
       isVerify: false,
       registrationOtp: hashedOtp,
       otpExpiry,

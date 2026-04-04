@@ -67,7 +67,7 @@ const userSchema = new Schema(
       type: String,
     },
     travelStyle: {
-      type: String,
+      type: [String],
       enum: [
         "Relaxed & familiar",
         "Adventurous",
@@ -75,6 +75,7 @@ const userSchema = new Schema(
         "Nightlife & social",
         "Off the beaten path",
       ],
+      default: [],
     },
 
     // stripeAccountId: { type: String },
