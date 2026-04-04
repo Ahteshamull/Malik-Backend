@@ -7,17 +7,12 @@ export const allUser = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const { role } = req.query;
 
-    let filter = {};
-    if (role) {
-      filter.role = role;
-    }
-
-    const totalUsers = await userModel.countDocuments(filter);
+    const totalUsers = await userModel.countDocuments();
 
     const users = await userModel
-      .find(filter)
+      .find()
+      .select("-password -confirmPassword")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -27,7 +22,7 @@ export const allUser = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "All users retrieved successfully",
-      pagination: {
+      meta: {
         currentPage: page,
         totalPages,
         totalUsers,
@@ -72,17 +67,7 @@ export const singleUser = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "User retrieved successfully",
-      data: {
-        ...userData.toObject(),
-        completeDealsTotal: userData.completeDeals
-          ? userData.completeDeals.length
-          : 0,
-        totalRedeemStars: 0,
-        completeDealsTotal: userData.completeDeals
-          ? userData.completeDeals.length
-          : 0,
-        totalRedeemStars: 0,
-      },
+      data: userData,
     });
   } catch (error) {
     return res.status(500).json({
