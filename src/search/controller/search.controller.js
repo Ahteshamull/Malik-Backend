@@ -1,5 +1,3 @@
-import { Listing } from "../../listing/schema/listing.modal.js";
-import Deal from "../../deals/schema/deal.modal.js";
 import User from "../../auth/schema/auth.modal.js";
 
 const globalSearch = async (req, res) => {
@@ -8,18 +6,12 @@ const globalSearch = async (req, res) => {
       query,
       page = 1,
       limit = 10,
-      propertyType,
-      location,
-      minPrice,
-      maxPrice,
-      searchType = "all", // all, users, listings, deals
+      searchType = "all", // all, users
     } = req.query;
 
     const searchRegex = query ? { $regex: query, $options: "i" } : null;
     const results = {
       users: [],
-      listings: [],
-      deals: [],
       pagination: {
         currentPage: parseInt(page),
         totalPages: 1,
@@ -50,66 +42,8 @@ const globalSearch = async (req, res) => {
       results.users = users;
     }
 
-    // Search Listings
-    if (searchType === "all" || searchType === "listings") {
-      const listingFilter = {};
-
-      if (query) {
-        listingFilter.$or = [
-          { title: searchRegex },
-          { description: searchRegex },
-          { location: searchRegex },
-          { propertyType: searchRegex },
-          { customAmenities: searchRegex },
-        ];
-      }
-
-      if (propertyType) {
-        listingFilter.propertyType = propertyType;
-      }
-
-      if (location) {
-        listingFilter.location = { $regex: location, $options: "i" };
-      }
-
-      if (minPrice || maxPrice) {
-        listingFilter.price = {};
-        if (minPrice) listingFilter.price.$gte = parseFloat(minPrice);
-        if (maxPrice) listingFilter.price.$lte = parseFloat(maxPrice);
-      }
-
-      const listings = await Listing.find(listingFilter)
-        .populate("userId")
-        .sort({ createdAt: -1 })
-        .limit(limit * 1)
-        .skip((page - 1) * limit);
-
-      results.listings = listings;
-    }
-
-    // Search Deals
-    if (searchType === "all" || searchType === "deals") {
-      const dealFilter = {};
-      if (query) {
-        dealFilter.$or = [
-          { description: searchRegex },
-          { addAirbnbLink: searchRegex },
-        ];
-      }
-
-      const deals = await Deal.find(dealFilter)
-        .populate("userId")
-        .populate("title", "title location")
-        .sort({ createdAt: -1 })
-        .limit(limit * 1)
-        .skip((page - 1) * limit);
-
-      results.deals = deals;
-    }
-
     // Calculate total results
-    const total =
-      results.users.length + results.listings.length + results.deals.length;
+    const total = results.users.length;
     results.pagination.total = total;
     results.pagination.totalPages = Math.ceil(total / limit);
 
@@ -132,7 +66,7 @@ const globalSearch = async (req, res) => {
 const specificSearch = async (req, res) => {
   try {
     const {
-      query: collection = "all", // users | listings | deals | all
+      query: collection = "all", // users | all
       searchType: keyword = "", // actual search text
     } = req.query;
 
@@ -141,31 +75,24 @@ const specificSearch = async (req, res) => {
       "all",
       "users",
       "user", // singular form
-      "listings",
-      "listing", // singular form
-      "deals",
-      "deal", // singular form
     ];
-    const actualCollection = validCollections.includes(collection)
+    let actualCollection = validCollections.includes(collection)
       ? collection
       : "all";
 
     // If collection is invalid, fallback to the keyword as collection if it's valid
     if (collection !== actualCollection && validCollections.includes(keyword)) {
       actualCollection = keyword;
-    } else if (collection !== actualCollection) {
     }
 
     const searchRegex = keyword ? { $regex: keyword, $options: "i" } : null;
 
     const results = {
       users: [],
-      listings: [],
-      deals: [],
     };
 
     // 👤 USERS - search if collection is "users" or "all"
-    if (actualCollection === "users" || actualCollection === "all") {
+    if (actualCollection === "users" || actualCollection === "all" || actualCollection === "user") {
       const users = await User.find({})
         .select("name email phone role image createdAt")
         .sort({ createdAt: -1 })
@@ -185,62 +112,6 @@ const specificSearch = async (req, res) => {
       });
 
       results.users = filteredUsers;
-    }
-
-    // 🏠 LISTINGS - search if collection is "listings" or "all"
-    if (actualCollection === "listings" || actualCollection === "all") {
-      const listings = await Listing.find({})
-        .populate("userId")
-        .sort({ createdAt: -1 })
-        .lean();
-
-      // Filter listings in JavaScript after population
-      const filteredListings = listings.filter((listing) => {
-        if (!keyword) return true;
-
-        const searchTerm = keyword.toLowerCase();
-
-        return (
-          (listing.title && listing.title.toLowerCase().includes(searchTerm)) ||
-          (listing.location &&
-            listing.location.toLowerCase().includes(searchTerm)) ||
-          (listing.propertyType &&
-            listing.propertyType.toLowerCase().includes(searchTerm)) ||
-          (listing.status && listing.status.toLowerCase().includes(searchTerm))
-        );
-      });
-
-      results.listings = filteredListings;
-    }
-
-    // DEALS - search if collection is "deals" or "all"
-    if (actualCollection === "deals" || actualCollection === "all") {
-      // First get all deals, then filter in JavaScript
-      const deals = await Deal.find({})
-        .populate("userId")
-        .populate("title")
-        .sort({ createdAt: -1 })
-        .lean();
-
-      // Filter deals in JavaScript after population
-      const filteredDeals = deals.filter((deal) => {
-        if (!keyword) return true;
-
-        const searchTerm = keyword.toLowerCase();
-
-        return (
-          (deal.description &&
-            deal.description.toLowerCase().includes(searchTerm)) ||
-          (deal.status && deal.status.toLowerCase().includes(searchTerm)) ||
-          (deal.addAirbnbLink &&
-            deal.addAirbnbLink.toLowerCase().includes(searchTerm)) ||
-          (deal.title &&
-            deal.title.title &&
-            deal.title.title.toLowerCase().includes(searchTerm))
-        );
-      });
-
-      results.deals = filteredDeals;
     }
 
     res.status(200).json({

@@ -12,71 +12,30 @@ import Payment from "../../payment/schema/payment.modal.js";
 import Notification from "../../notification/schema/notification.modal.js";
 
 export const createUser = async (req, res) => {
-  // Handle form data where fields might be in different locations
-  let name = req.body.name;
-  let email = req.body.email;
-  let password = req.body.password;
-  let confirmPassword = req.body.confirmPassword;
-  let role = req.body.role;
-  let userName = req.body.userName;
-
-  // Extract additional fields from request body
-  let location = req.body.location;
-  let fullAddress = req.body.fullAddress;
-  let country = req.body.country;
-  let state = req.body.state;
-  let city = req.body.city;
-  let zipCode = req.body.zipCode;
-  let phone = req.body.phone;
-  let dateOfBirth = req.body.dateOfBirth;
-  let gender = req.body.gender;
-  let aboutMe = req.body.aboutMe;
-  let bio = req.body.bio;
+  const {
+    userName,
+    email,
+    password,
+    confirmPassword,
+    phone,
+    country,
+    experience,
+    ageRange,
+    gender,
+    travelStyle,
+  } = req.body;
 
   // Basic required fields
-  if (!name || !email || !password) {
-    return res.status(404).send({
-      error: true,
-      message: "Field Is Required",
-    });
-  }
-
-  // Username required
-  if (!userName) {
-    return res.status(404).send({
-      error: true,
-      message: "Unique UserName Is Required",
-    });
-  }
-
-  // ---------------- USERNAME CONDITIONS ----------------
-  // normalize username
-  userName = userName.trim().toLowerCase();
-
-  // 5–20 chars, lowercase letters, numbers, underscore only
-  const usernameRegex = /^[a-z0-9_]{5,20}$/;
-
-  if (!usernameRegex.test(userName)) {
+  if (!userName || !email || !password || !confirmPassword) {
     return res.status(400).send({
       error: true,
-      message:
-        "UserName must be 5–20 characters long and contain only lowercase letters, numbers, and underscore (_)",
+      message: "Required fields are missing",
     });
   }
-
-  // Check if username already exists
-  const existingUserName = await userModel.findOne({ userName });
-  if (existingUserName) {
-    return res.status(409).send({
-      error: true,
-      message: "Unique UserName Already Exists",
-    });
-  }
-  // -----------------------------------------------------
 
   // Email validation
   if (!EmailValidateCheck(email)) {
-    return res.status(404).send({
+    return res.status(400).send({
       error: true,
       message: "Invalid Email",
     });
@@ -84,77 +43,71 @@ export const createUser = async (req, res) => {
 
   // Password match check
   if (password !== confirmPassword) {
-    return res.status(404).send({
+    return res.status(400).send({
       error: true,
       message: "Passwords Do Not Match",
     });
   }
 
   // Normalize email
-  email = email.toLowerCase();
+  const normalizedEmail = email.toLowerCase().trim();
 
   // Check if email already exists
-  const existingUser = await userModel.findOne({ email });
+  const existingUser = await userModel.findOne({ email: normalizedEmail });
   if (existingUser) {
-    return res.status(404).send({
+    return res.status(409).send({
       error: true,
       message: "Email Already In Use",
     });
   }
 
+  const normalizedUserName = userName.trim().toLowerCase();
+
+  // Check if userName already exists to prevent MongoDB E11000 crash
+  const existingUserName = await userModel.findOne({ userName: normalizedUserName });
+  if (existingUserName) {
+    return res.status(409).send({
+      error: true,
+      message: "This UserName is already taken. Please choose another one.",
+    });
+  }
+
   try {
-    // Check total users to determine if this is a founder member
-    const totalUsers = await userModel.countDocuments();
-    const isFounderMember = totalUsers < 50; // First 50 users are founder members 👑
-    const isNoMember = totalUsers >= 50; // Users 50+ are no members
+    const hash = await bcrypt.hash(password, 10);
 
-    bcrypt.hash(password, 10, async function (err, hash) {
-      if (err) {
-        return res.status(500).send({
-          error: true,
-          message: "Password hashing failed",
-        });
-      } else {
-        const user = new userModel({
-          name,
-          email,
-          userName,
-          password: hash,
-          confirmPassword: hash,
-          role,
-          location,
-          fullAddress,
-          country,
-          state,
-          city,
-          zipCode,
-          phone,
-          dateOfBirth,
-          gender,
-          aboutMe,
-          bio,
-          isFounderMember, // 👑 Founder Member for first 50 users
-          isNoMember,
-          totalUsersAtRegistration: totalUsers, // Save total users count at registration
-        });
+    const user = new userModel({
+      userName: normalizedUserName,
+      email: normalizedEmail,
+      password: hash,
+      confirmPassword: hash, // Hashed confirmPassword
+      phone,
+      country,
+      experience,
+      ageRange,
+      gender,
+      travelStyle,
+    });
 
-        await user.save();
+    await user.save();
 
-        // Send notification to admin about new user registration
-        await notifyAdminOnUserCreated(user._id, user.name, user.email);
+    // Send notification to admin about new user registration
+    await notifyAdminOnUserCreated(user._id, user.userName, user.email);
 
-        // Populate user data with all information
-        const populatedUser = await userModel.findById(user._id).select(""); // Select all fields
+    // Populate user data without passwords
+    const populatedUser = await userModel
+      .findById(user._id)
+      .select("-password -confirmPassword");
 
-        return res.status(201).send({
-          success: true,
-          message: "User Created Successfully",
-          data: populatedUser,
-        });
-      }
+    return res.status(201).send({
+      success: true,
+      message: "User Created Successfully",
+      data: populatedUser,
     });
   } catch (error) {
-    return res.status(404).send({ error });
+    return res.status(500).send({
+      error: true,
+      message: error?.message || "Internal server error",
+    });
   }
 };
 
@@ -180,18 +133,9 @@ export const getMyProfile = async (req, res) => {
       });
     }
 
-    // Update user object
-    const filteredUser = {
-      ...user.toObject(),
-      deals: [],
-      dealsTotal: 0,
-      listings: [],
-      listingsTotal: 0,
-    };
-
     return res.status(200).json({
       success: true,
-      data: filteredUser,
+      data: user,
     });
   } catch (error) {
     return res.status(500).json({
@@ -246,11 +190,14 @@ export const login = async (req, res) => {
 
   const loginUserInfo = {
     id: existingUser._id,
-    name: existingUser.name,
     email: existingUser.email,
     userName: existingUser.userName,
-    role: existingUser.role,
   };
+
+  // Optional: Add role back if you ever add it to schema
+  if (existingUser.role) {
+    loginUserInfo.role = existingUser.role;
+  }
 
   const cookieOptions = {
     httpOnly: true,
@@ -264,9 +211,7 @@ export const login = async (req, res) => {
     .cookie("refreshToken", refreshToken, cookieOptions)
     .json({
       success: true,
-      message: `${
-        existingUser.role === "host" ? "Host" : "Influencer"
-      } login successfully`,
+      message: `${existingUser.userName} logged in successfully`,
       data: loginUserInfo,
       accessToken,
       refreshToken,
@@ -708,133 +653,6 @@ export const currentUserLogin = async (req, res) => {
   }
 };
 
-export const setUpProfile = async (req, res) => {
-  try {
-    const userId = req.user?.id || req.user?._id;
-
-    if (!userId) {
-      return res.status(401).json({
-        error: true,
-        message: "User not authenticated",
-      });
-    }
-
-    const { fullName, location, linkAirbnbAccount, bio, nicheTags } = req.body;
-
-    const user = await userModel.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        error: true,
-        message: "User not found",
-      });
-    }
-
-    // Update common profile fields
-    user.name = fullName;
-    user.fullAddress = location;
-
-    // Generate username if not present
-    if (!user.userName) {
-      user.userName =
-        fullName
-          .toLowerCase()
-          .replace(/\s+/g, "_")
-          .replace(/[^a-z0-9_]/g, "") +
-        "_" +
-        Date.now().toString().slice(-6);
-    }
-
-    // Handle profile photo upload if present
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
-    if (imagePath) {
-      // Delete old image if it exists
-      if (user.image) {
-        const oldImagePath = path.join(process.cwd(), user.image);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
-      }
-      // Update with new image path
-      user.image = imagePath;
-    }
-
-    // Handle role-specific fields
-    if (user.role === "host") {
-      // Host-specific validations and fields
-      if (!fullName || !location) {
-        return res.status(400).json({
-          error: true,
-          message: "Full name and location are required for host profile",
-        });
-      }
-
-      // Handle Airbnb account linking for hosts
-      if (linkAirbnbAccount) {
-        // This would typically involve OAuth flow with Airbnb
-        // For now, we'll just mark that the user wants to link
-        user.airbnbAccountLinked = false; // Would be updated after successful linking
-      }
-    } else if (user.role === "influencer") {
-      // Influencer-specific validations and fields
-      if (!fullName) {
-        return res.status(400).json({
-          error: true,
-          message: "Full name is required for influencer profile",
-        });
-      }
-
-      // Update influencer-specific fields
-      if (bio) {
-        user.bio = bio;
-      }
-
-      // Handle nicheTags - convert string to array if needed
-      if (nicheTags) {
-        if (typeof nicheTags === "string") {
-          user.nicheTags = [nicheTags];
-        } else if (Array.isArray(nicheTags)) {
-          user.nicheTags = nicheTags;
-        }
-      }
-    }
-
-    await user.save();
-
-    // Prepare response data based on role
-    const responseData = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      fullName: user.name,
-      role: user.role,
-      image: user.image,
-      fullAddress: user.fullAddress,
-    };
-
-    // Add role-specific fields to response
-    if (user.role === "host") {
-      responseData.airbnbAccountLinked = user.airbnbAccountLinked || false;
-    } else if (user.role === "influencer") {
-      responseData.bio = user.bio;
-      responseData.nicheTags = user.nicheTags;
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: `${
-        user.role.charAt(0).toUpperCase() + user.role.slice(1)
-      } profile setup completed successfully`,
-      data: responseData,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      error: true,
-      message: "Internal server error",
-      details: error.message,
-    });
-  }
-};
-
 export const deleteUser = async (req, res) => {
   try {
     // Get user ID from token
@@ -872,15 +690,6 @@ export const deleteUser = async (req, res) => {
         // Continue with user deletion even if image deletion fails
       }
     }
-
-    // Delete user's deals
-    const Deal = (await import("../../deals/schema/deal.modal.js")).default;
-    await Deal.deleteMany({ userId: userId });
-
-    // Delete user's listings
-    const Listing = (await import("../../listing/schema/listing.modal.js"))
-      .Listing;
-    await Listing.deleteMany({ userId: userId });
 
     const Notification = (
       await import("../../notification/schema/notification.modal.js")
@@ -1002,123 +811,6 @@ export const deleteMyAccount = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error deleting account",
-      error: error.message,
-    });
-  }
-};
-
-export const shareMyProfile = async (req, res) => {
-  try {
-    // Get user ID from token
-    const userId = req.user?.id || req.user?._id;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required",
-      });
-    }
-
-    // Check if user exists
-    const user = await userModel.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    // Check if user has a username
-    if (!user.userName) {
-      return res.status(400).json({
-        success: false,
-        message: "Username not found. Please set up your profile first.",
-      });
-    }
-
-    // Generate shareable links for web and mobile
-    const webUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL;
-    const mobileAppUrl = process.env.MOBILE_APP_URL || "malik://profile";
-
-    const shareableLinks = {
-      web: `${webUrl}/profile/${user.userName}`,
-      mobile: `${mobileAppUrl}/${user.userName}`,
-      universal: `https://malik.com/profile/${user.userName}`, // Universal link for both
-    };
-
-    res.status(200).json({
-      success: true,
-      message: "Shareable links generated successfully",
-      data: {
-        shareableLinks,
-        username: user.userName,
-        platforms: {
-          web: webUrl,
-          mobile: mobileAppUrl,
-          universal: "https://malik.com",
-        },
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error generating shareable links",
-      error: error.message,
-    });
-  }
-};
-
-export const getPublicProfile = async (req, res) => {
-  try {
-    const { username } = req.params;
-
-    if (!username) {
-      return res.status(400).json({
-        success: false,
-        message: "Username is required",
-      });
-    }
-
-    // Find user by userName with only basic information
-    const user = await userModel
-      .findOne({ userName: username })
-      .select(
-        "name userName email role image bio socialMediaLinks followers following createdAt",
-      )
-      .lean();
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "Profile not found",
-      });
-    }
-
-    // Remove sensitive information
-    const publicProfile = {
-      name: user.name,
-      userName: user.userName,
-      role: user.role,
-      image: user.image,
-      bio: user.bio,
-      socialMediaLinks: user.socialMediaLinks,
-      followers: user.followers || 0,
-      following: user.following || 0,
-      createdAt: user.createdAt,
-      email: user.email ? user.email.split("@")[0] + "***" : "", // Partially hide email
-    };
-
-    res.status(200).json({
-      success: true,
-      message: "Public profile retrieved successfully",
-      data: {
-        profile: publicProfile,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error retrieving public profile",
       error: error.message,
     });
   }

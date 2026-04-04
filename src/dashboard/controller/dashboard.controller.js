@@ -1,22 +1,17 @@
 import userModel from "../../auth/schema/auth.modal.js";
-import { Listing } from "../../listing/schema/listing.modal.js";
-import Deal from "../../deals/schema/deal.modal.js";
 import Payment from "../../payment/schema/payment.modal.js";
 
 export const dashboard = async (req, res) => {
   try {
     // Get all total counts in parallel
-    const [totalUsers, totalListings, totalDeals, recentUsers] =
-      await Promise.all([
-        userModel.countDocuments({}),
-        Listing.countDocuments({}),
-        Deal.countDocuments({}),
-        userModel
-          .find({})
-          .sort({ createdAt: -1 })
-          .limit(10)
-          .select("name email role createdAt"),
-      ]);
+    const [totalUsers, recentUsers] = await Promise.all([
+      userModel.countDocuments({}),
+      userModel
+        .find({})
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select("name email role createdAt"),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -25,8 +20,6 @@ export const dashboard = async (req, res) => {
       data: {
         totals: {
           users: totalUsers,
-          listings: totalListings,
-          deals: totalDeals,
         },
         recentUsers,
       },
@@ -71,25 +64,13 @@ export const userDashboard = async (req, res) => {
 
     // Get all user-specific data in parallel
     const [
-      totalListings,
-      verifiedListings,
-      totalDeals,
       totalSpending,
       monthlySpending,
       lastMonthSpending,
-      totalNightStays,
-      currentMonthNightStays,
-      lastMonthNightStays,
       totalEarnings,
       monthlyEarnings,
       lastMonthEarnings,
     ] = await Promise.all([
-      Listing.countDocuments({ userId }),
-
-      Listing.countDocuments({ userId, status: "verified" }),
-
-      Deal.countDocuments({ userId }),
-
       Payment.aggregate([
         {
           $match: {
@@ -140,73 +121,6 @@ export const userDashboard = async (req, res) => {
           $group: {
             _id: null,
             total: { $sum: "$amount" },
-          },
-        },
-      ]),
-
-      // Total night stays from deals
-      Deal.aggregate([
-        { $match: { userId } },
-        { $unwind: "$compensation" },
-        {
-          $match: {
-            "compensation.nightCredits": true,
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            totalNights: { $sum: "$compensation.numberOfNights" },
-          },
-        },
-      ]),
-
-      // Current month night stays
-      Deal.aggregate([
-        {
-          $match: {
-            userId,
-            createdAt: {
-              $gte: new Date(currentYear, currentMonth, 1),
-              $lt: new Date(currentYear, currentMonth + 1, 1),
-            },
-          },
-        },
-        { $unwind: "$compensation" },
-        {
-          $match: {
-            "compensation.nightCredits": true,
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            totalNights: { $sum: "$compensation.numberOfNights" },
-          },
-        },
-      ]),
-
-      // Last month night stays
-      Deal.aggregate([
-        {
-          $match: {
-            userId,
-            createdAt: {
-              $gte: new Date(lastMonthYear, lastMonth, 1),
-              $lt: new Date(lastMonthYear, lastMonth + 1, 1),
-            },
-          },
-        },
-        { $unwind: "$compensation" },
-        {
-          $match: {
-            "compensation.nightCredits": true,
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            totalNights: { $sum: "$compensation.numberOfNights" },
           },
         },
       ]),
@@ -283,15 +197,6 @@ export const userDashboard = async (req, res) => {
         ? (((currentEarnings - lastEarnings) / lastEarnings) * 100).toFixed(2)
         : 0;
 
-    const currentNightStays = currentMonthNightStays[0]?.totalNights || 0;
-    const lastNightStays = lastMonthNightStays[0]?.totalNights || 0;
-    const nightStaysGrowth =
-      lastNightStays > 0
-        ? (
-            ((currentNightStays - lastNightStays) / lastNightStays) *
-            100
-          ).toFixed(2)
-        : 0;
 
     res.status(200).json({
       success: true,
@@ -300,16 +205,6 @@ export const userDashboard = async (req, res) => {
       data: {
         userRole: user.role,
         totals: {
-          listings: {
-            total: totalListings,
-            verified: verifiedListings,
-          },
-          deals: totalDeals,
-          nightStays: {
-            total: totalNightStays[0]?.totalNights || 0,
-            currentMonth: currentNightStays,
-            growth: parseFloat(nightStaysGrowth),
-          },
           earnings: {
             total: totalEarnings[0]?.total || 0,
             currentMonth: currentEarnings,

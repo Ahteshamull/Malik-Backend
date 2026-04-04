@@ -3,7 +3,7 @@ const { Schema } = mongoose;
 
 const userSchema = new Schema(
   {
-    name: {
+    userName: {
       type: String,
       required: [true],
       trim: true,
@@ -14,6 +14,7 @@ const userSchema = new Schema(
       unique: [true],
       trim: true,
     },
+
     password: {
       type: String,
       required: [true],
@@ -33,16 +34,7 @@ const userSchema = new Schema(
     country: {
       type: String,
     },
-    state: {
-      type: String,
-    },
-    city: {
-      type: String,
-    },
-    zipCode: {
-      type: String,
-    },
-    fullAddress: {
+    experience: {
       type: String,
     },
     ageRange: {
@@ -53,39 +45,30 @@ const userSchema = new Schema(
       type: String,
       enum: ["male", "female", "other"],
     },
-    aboutMe: {
-      type: String,
-    },
+
     image: {
       type: String,
     },
-    role: {
-      type: String,
-      enum: ["host", "influencer"],
-      default: "influencer",
-    },
+
     refreshToken: {
       type: String,
     },
     dateOfBirth: {
       type: String,
     },
- 
-    totalReviews: {
-      type: Number,
-      default: 0,
-    },
-    averageRating: {
-      type: Number,
-      default: 0,
-    },
-    status: {
+    travelStyle: {
       type: String,
-      default: "active",
+      enum: [
+        "Relaxed & familiar",
+        "Adventurous",
+        "Culture & heritage",
+        "Nightlife & social",
+        "Off the beaten path",
+      ],
     },
 
-    stripeAccountId: { type: String },
-    isStripeConnected: { type: Boolean, default: false },
+    // stripeAccountId: { type: String },
+    // isStripeConnected: { type: Boolean, default: false },
   },
   {
     timestamps: true,

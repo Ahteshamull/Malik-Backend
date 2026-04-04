@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import userModel from "../../auth/schema/auth.modal.js";
 import Payment from "../schema/payment.modal.js";
-import Deal from "../../deals/schema/deal.modal.js";
+
 import Stripe from "stripe";
 
 // Initialize Stripe with your secret key
