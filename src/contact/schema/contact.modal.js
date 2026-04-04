@@ -30,17 +30,6 @@ const contactSchema = new mongoose.Schema(
       type: String,
       required: [true, "Subject is required"],
       trim: true,
-      enum: {
-        values: [
-          "General Inquiry",
-          "Technical Support",
-          "Billing Question",
-          "Partnership Opportunity",
-          "Feedback",
-          "Other",
-        ],
-        message: "Subject must be one of the predefined options",
-      },
     },
     message: {
       type: String,

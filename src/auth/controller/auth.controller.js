@@ -64,7 +64,9 @@ export const createUser = async (req, res) => {
   const normalizedUserName = userName.trim().toLowerCase();
 
   // Check if userName already exists to prevent MongoDB E11000 crash
-  const existingUserName = await userModel.findOne({ userName: normalizedUserName });
+  const existingUserName = await userModel.findOne({
+    userName: normalizedUserName,
+  });
   if (existingUserName) {
     return res.status(409).send({
       error: true,
@@ -180,7 +182,7 @@ export const login = async (req, res) => {
   if (!isPasswordValid) {
     return res.status(401).json({
       error: true,
-      message: "Invalid credentials",
+      message: "Invalid credentials email or password",
     });
   }
 

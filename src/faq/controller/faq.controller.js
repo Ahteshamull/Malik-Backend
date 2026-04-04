@@ -56,8 +56,6 @@ export const getAllFaqs = async (req, res) => {
 
     const faqs = await faqModel
       .find(filter)
-      .populate("createdBy", "name email")
-      .populate("updatedBy", "name email")
       .sort({ order: 1, createdAt: -1 })
       .limit(limit * 1)
       .skip(skip);
@@ -68,7 +66,7 @@ export const getAllFaqs = async (req, res) => {
       success: true,
       message: "FAQs retrieved successfully",
       data: {
-        pagination: {
+        meta: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(total / limit),
           total,
@@ -92,8 +90,6 @@ export const getFaqById = async (req, res) => {
 
     const faq = await faqModel
       .findById(id)
-      .populate("createdBy", "name email")
-      .populate("updatedBy", "name email");
 
     if (!faq) {
       return res.status(404).json({

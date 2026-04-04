@@ -4,14 +4,14 @@ export const contactEmailTemplate = (
   email,
   phoneNumber,
   subject,
-  message
+  message,
 ) => {
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Malik New Contact Message</title>
+  <title>Caribee New Contact Message</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f5f7;font-family:Arial,Helvetica,sans-serif;">
   
@@ -25,9 +25,9 @@ export const contactEmailTemplate = (
           <!-- HEADER -->
           <tr>
             <td style="background:#2563eb;padding:24px;text-align:center;color:#ffffff;">
-              <h2 style="margin:0;font-size:22px;">📩 Malik New Contact Message</h2>  
+              <h2 style="margin:0;font-size:22px;">📩 Caribee New Contact Message</h2>  
               <p style="margin:6px 0 0;font-size:14px;opacity:0.9;">
-                You received a new inquiry from your website
+                You received a new inquiry from Caribee app
               </p>
             </td>
           </tr>

@@ -12,10 +12,10 @@ const sendContactEmail = async ({
   message,
 }) => {
   return transporter.sendMail({
-    from: `" Malik Contact" <${process.env.OTP_EMAIL}>`,
+    from: `" Caribee Contact" <${process.env.OTP_EMAIL}>`,
     to: process.env.ADMIN_EMAIL,
     replyTo: email,
-    subject: ` Malik New Contact Message: ${subject}`,
+    subject: ` Caribee New Contact Message: ${subject}`,
     html: contactEmailTemplate(
       firstName,
       lastName,

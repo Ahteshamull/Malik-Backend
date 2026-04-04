@@ -80,76 +80,52 @@ export const singleUser = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const userId =
-      req.user?.id || req.user?.userId || req.user?._id || req.user?.sub;
+    const userId = req.user?.id || req.user?.userId || req.user?._id || req.user?.sub;
 
     if (!userId) {
       return res.status(401).json({
         success: false,
         message: "User ID not found in token",
-        debug: {
-          user: req.user,
-          availableFields: Object.keys(req.user || {}),
-        },
       });
     }
 
     const {
-      name,
       userName,
       email,
       phone,
       dateOfBirth,
-      gender,
       country,
-      state,
-      city,
-      zipCode,
-      airbnbAccount,
-      fullAddress,
-      aboutMe,
       image,
     } = req.body;
-
-    // 🔧 FIX: use mutable variable
-    let { socialMediaLinks } = req.body;
 
     const existingUser = await userModel.findById(userId);
 
     if (!existingUser) {
-      const totalUsers = await userModel.countDocuments();
-
       return res.status(404).json({
         success: false,
         message: "User not found",
-        debug: {
-          userId,
-          totalUsersInDb: totalUsers,
-        },
       });
     }
 
     const updateData = {};
     let hasChanges = false;
 
-    if (name !== undefined && name !== existingUser.name) {
-      updateData.name = name;
+    // Check mapping since the UI uses Full Name -> userName
+    if (userName !== undefined && userName.trim() !== existingUser.userName) {
+      const duplicate = await userModel.findOne({ userName: userName.trim(), _id: { $ne: userId } });
+      if (duplicate) {
+        return res.status(409).json({ success: false, message: "This Name is already taken." });
+      }
+      updateData.userName = userName.trim();
       hasChanges = true;
     }
 
-    if (
-      userName !== undefined &&
-      userName.toLowerCase().trim() !== existingUser.userName
-    ) {
-      updateData.userName = userName.toLowerCase().trim();
-      hasChanges = true;
-    }
-
-    if (
-      email !== undefined &&
-      email.toLowerCase() !== existingUser.email.toLowerCase()
-    ) {
-      updateData.email = email.toLowerCase();
+    if (email !== undefined && email.toLowerCase().trim() !== existingUser.email) {
+      const duplicate = await userModel.findOne({ email: email.toLowerCase().trim(), _id: { $ne: userId } });
+      if (duplicate) {
+        return res.status(409).json({ success: false, message: "This Email is already in use." });
+      }
+      updateData.email = email.toLowerCase().trim();
       hasChanges = true;
     }
 
@@ -163,107 +139,18 @@ export const updateProfile = async (req, res) => {
       hasChanges = true;
     }
 
-    if (gender !== undefined && gender !== existingUser.gender) {
-      updateData.gender = gender;
-      hasChanges = true;
-    }
-
     if (country !== undefined && country !== existingUser.country) {
       updateData.country = country;
       hasChanges = true;
     }
 
-    if (state !== undefined && state !== existingUser.state) {
-      updateData.state = state;
-      hasChanges = true;
-    }
 
-    if (city !== undefined && city !== existingUser.city) {
-      updateData.city = city;
-      hasChanges = true;
-    }
 
-    if (zipCode !== undefined && zipCode !== existingUser.zipCode) {
-      updateData.zipCode = zipCode;
-      hasChanges = true;
-    }
-
-    if (fullAddress !== undefined && fullAddress !== existingUser.fullAddress) {
-      updateData.fullAddress = fullAddress;
-      hasChanges = true;
-    }
-
-    if (aboutMe !== undefined && aboutMe !== existingUser.aboutMe) {
-      updateData.aboutMe = aboutMe;
-      hasChanges = true;
-    }
-
-    if (
-      airbnbAccount !== undefined &&
-      airbnbAccount !== existingUser.airbnbAccount
-    ) {
-      updateData.airbnbAccount = airbnbAccount;
-      hasChanges = true;
-    }
-
-    // ✅ influencer only
-    if (existingUser.role === "influencer" && socialMediaLinks !== undefined) {
-      if (typeof socialMediaLinks === "string") {
-        try {
-          socialMediaLinks = JSON.parse(socialMediaLinks);
-        } catch (err) {
-          return res.status(400).json({
-            success: false,
-            message: "Social media links must be a valid JSON array.",
-          });
-        }
-      }
-
-      if (!Array.isArray(socialMediaLinks)) {
-        return res.status(400).json({
-          success: false,
-          message: "Social media links must be an array.",
-        });
-      }
-
-      const validPlatforms = [
-        "facebook",
-        "instagram",
-        "x",
-        "youtube",
-        "tiktok",
-      ];
-
-      const filteredLinks = socialMediaLinks
-        .filter((link) => link.platform && link.url)
-        .map((link) => ({
-          platform: link.platform,
-          url: link.url,
-          followers: link.followers || "", // Keep as string for values like "12 k"
-        }));
-
-      const isValid = filteredLinks.every(
-        (link) =>
-          validPlatforms.includes(link.platform) &&
-          typeof link.url === "string",
-      );
-
-      if (!isValid) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid social media links format.",
-        });
-      }
-
-      updateData.socialMediaLinks = filteredLinks;
-      hasChanges = true;
-    }
-
-    // ✅ image upload
+    // Image upload handling
     if (req.file) {
       updateData.image = `/uploads/${req.file.filename}`;
       hasChanges = true;
-    } else if (image && image !== existingUser.image) {
+    } else if (image !== undefined && image !== existingUser.image) {
       updateData.image = image;
       hasChanges = true;
     }
@@ -279,8 +166,8 @@ export const updateProfile = async (req, res) => {
     const updatedUser = await userModel.findByIdAndUpdate(
       userId,
       { $set: updateData },
-      { new: true, runValidators: true },
-    );
+      { new: true, runValidators: true }
+    ).select("-password -confirmPassword -refreshToken");
 
     return res.status(200).json({
       success: true,
