@@ -514,48 +514,42 @@ export const ResendOtp = async (req, res) => {
     return res.status(400).json({ error: true, message: "Email is required" });
   }
 
-  const existingUser = await userModel.findOne({ email });
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const existingUser = await userModel.findOne({ email: normalizedEmail });
   if (!existingUser) {
     return res.status(404).json({ error: true, message: "User not found" });
   }
 
-  // Check existing OTP record
-  let reset = await PasswordReset.findOne({ email });
-
-  if (reset) {
-    const resendCheck = otpService.canResend(reset);
-    if (!resendCheck.allowed) {
-      return res.status(429).json({ message: resendCheck.message });
-    }
-  }
-
-  const verifyCode = otpService.generateOTP();
-
-  // Update or create OTP record
-  if (reset) {
-    reset.hashedOTP = otpService.hashOTP(verifyCode);
-    reset.otpCreatedAt = new Date();
-    reset.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    reset.resendCount++;
-    reset.lastResendAt = new Date();
-    reset.attempts = 0;
-    await reset.save();
-  } else {
-    reset = new PasswordReset({
-      email,
-      hashedOTP: otpService.hashOTP(verifyCode),
-      otpCreatedAt: new Date(),
-      otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+  // If already verified, no need to resend
+  if (existingUser.isVerify) {
+    return res.status(400).json({
+      error: true,
+      message: "This account is already verified. Please login.",
     });
-    await reset.save();
   }
 
-  // Send OTP email
   try {
-    await sendOtp.sendOTPEmail(email, verifyCode, existingUser.name || "User");
+    // Generate a fresh 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Update registration OTP directly on the user document
+    existingUser.registrationOtp = hashedOtp;
+    existingUser.otpExpiry = otpExpiry;
+    await existingUser.save({ validateBeforeSave: false });
+
+    // Send registration verification email
+    await sendOtp.sendRegistrationOTP(
+      normalizedEmail,
+      otp,
+      existingUser.userName || "User"
+    );
+
     return res.status(200).json({
       success: true,
-      message: "OTP resent successfully",
+      message: "A new verification code has been sent to your email.",
     });
   } catch (error) {
     console.error("Failed to resend OTP:", error);

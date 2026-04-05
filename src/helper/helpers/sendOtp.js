@@ -96,43 +96,154 @@ class SendOtp {
   }
 
   async sendOTPEmail(email, otp, userName = "User") {
-    
+    const senderEmail =
+      process.env.EMAIL_FROM ||
+      process.env.OTP_EMAIL ||
+      process.env.EMAIL_USER;
 
     const mailOptions = {
-      from:
-        process.env.EMAIL_FROM ||
-        process.env.OTP_EMAIL ||
-        process.env.EMAIL_USER,
+      from: `"Caribee" <${senderEmail}>`,
+      replyTo: senderEmail,
       to: email,
-      subject: "Password Reset OTP - Malik",
-      html: emailTemplate_verify(otp),
+      subject: "Your Password Reset Code – Caribee",
+      headers: {
+        "X-Mailer": "Caribee Mailer",
+        "X-Priority": "3",
+      },
+      // Plain-text fallback — required by anti-spam filters
       text: `
-Password Reset OTP - Malik
+Password Reset Request – Caribee
 
-Hello ${userName}!
+Hello ${userName},
 
-We received a request to reset your password for your Malik account.
+We received a request to reset the password for your Caribee account.
 
-Your OTP Code: ${otp}
+Your reset code: ${otp}
 
-This code expires in 10 minutes.
+This code will expire in 10 minutes.
 
-Please enter this OTP code in password reset form to continue.
+If you did not request a password reset, please ignore this email. Your account is safe.
 
-Security Notice:
-- Never share this OTP with anyone
-- This code expires in 10 minutes
-- If you didn't request this reset, please ignore this email
+© ${new Date().getFullYear()} Caribee. All rights reserved.
+      `.trim(),
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+          <title>Password Reset – Caribee</title>
+        </head>
+        <body style="margin:0;padding:0;background-color:#f0f4ff;font-family:Arial,Helvetica,sans-serif;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+            <tr>
+              <td align="center" style="padding:40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0"
+                  style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1);">
 
-© ${new Date().getFullYear()} Dalil Arehan. All rights reserved.
+                  <!-- Header -->
+                  <tr>
+                    <td style="background:linear-gradient(135deg,#e53e3e 0%,#c53030 100%);padding:36px 40px;text-align:center;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                        <tr>
+                          <td align="center">
+                            <div style="background:rgba(255,255,255,0.15);display:inline-block;border-radius:50%;width:56px;height:56px;line-height:56px;font-size:28px;margin-bottom:12px;">
+                              🔑
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td align="center">
+                            <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">
+                              Password Reset
+                            </h1>
+                            <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">
+                              Caribee Security
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding:40px 40px 20px;">
+                      <h2 style="margin:0 0 10px;color:#1a202c;font-size:18px;">
+                        Hello, ${userName}!
+                      </h2>
+                      <p style="margin:0 0 24px;color:#4a5568;font-size:15px;line-height:1.7;">
+                        We received a request to reset the password for your Caribee account.
+                        Use the code below to continue. This code is valid for <strong>10 minutes</strong>.
+                      </p>
+
+                      <!-- OTP Box -->
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                        <tr>
+                          <td align="center" style="padding:24px 0;">
+                            <div style="display:inline-block;background:#fff5f5;border:2px solid #fc8181;
+                              color:#c53030;font-size:38px;font-weight:900;letter-spacing:18px;
+                              padding:20px 36px;border-radius:12px;text-align:center;
+                              font-family:'Courier New',monospace;">
+                              ${otp}
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin:0 0 8px;color:#718096;font-size:13px;text-align:center;">
+                        ⏱ Expires in <strong style="color:#e53e3e;">10 minutes</strong>
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Warning Notice -->
+                  <tr>
+                    <td style="padding:0 40px 30px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                        <tr>
+                          <td style="background:#fff8f8;border-left:4px solid #fc8181;border-radius:4px;padding:14px 18px;">
+                            <p style="margin:0;color:#4a5568;font-size:13px;line-height:1.6;">
+                              ⚠️ <strong>Didn't request this?</strong> You can safely ignore this email.
+                              Your password will <strong>not</strong> be changed unless you use this code.
+                              Never share this code with anyone.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- Divider -->
+                  <tr>
+                    <td style="padding:0 40px;">
+                      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0;" />
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="background:#f7fafc;padding:20px 40px;text-align:center;border-radius:0 0 12px 12px;">
+                      <p style="margin:0;color:#a0aec0;font-size:12px;line-height:1.7;">
+                        © ${new Date().getFullYear()} Caribee. All rights reserved.<br />
+                        This is an automated message — please do not reply to this email.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `,
     };
 
     try {
       const transporter = this.getTransporter();
-
-        const result = await transporter.sendMail(mailOptions);
-        
+      const result = await transporter.sendMail(mailOptions);
       return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error("❌ Failed to send OTP email:", error);
