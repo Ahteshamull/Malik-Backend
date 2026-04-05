@@ -4,7 +4,7 @@ import { authenticateToken } from "../../helper/middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-// localhost:3000/api/v1/report/create-report/:userId
-router.post("/create-report/:userId", authenticateToken, createReport);
+// localhost:3000/api/v1/report/create-report
+router.post("/create-report", authenticateToken, createReport);
 
 export default router;

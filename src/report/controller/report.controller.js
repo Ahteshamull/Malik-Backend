@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Report from "../schema/report.modal.js";
 import userModel from "../../auth/schema/auth.modal.js";
+import sendOtp from "../../helper/helpers/sendOtp.js";
 
 /* ======================================================
    Create Report
@@ -9,9 +10,6 @@ export const createReport = async (req, res) => {
   try {
     // Reporter ID from JWT token
     const reporterId = req.user?.id || req.user?._id;
-
-    // Reported user ID from params
-    const { userId: reportedUserId } = req.params;
 
     const { issueType, issueTitle, description } = req.body;
 
@@ -24,29 +22,17 @@ export const createReport = async (req, res) => {
     }
 
     /* ===== Required Fields Check ===== */
-    if (!reportedUserId || !issueType || !issueTitle || !description) {
+    if (!issueType || !issueTitle || !description) {
       return res.status(400).json({
         success: false,
-        message:
-          "reportedUserId (params), issueType, issueTitle and description are required",
+        message: "issueType, issueTitle and description are required",
       });
     }
 
-    /* ===== Prevent Self Report ===== */
-    if (reporterId.toString() === reportedUserId.toString()) {
-      return res.status(400).json({
-        success: false,
-        message: "You cannot report yourself",
-      });
-    }
+    /* ===== Check Reporter Exists ===== */
+    const reporter = await userModel.findById(reporterId);
 
-    /* ===== Check Users Exist ===== */
-    const [reporter, reportedUser] = await Promise.all([
-      userModel.findById(reporterId),
-      userModel.findById(reportedUserId),
-    ]);
-
-    if (!reporter || !reportedUser) {
+    if (!reporter) {
       return res.status(404).json({
         success: false,
         message: "User not found",
@@ -56,20 +42,31 @@ export const createReport = async (req, res) => {
     /* ===== Create Report ===== */
     const report = await Report.create({
       userId: reporterId,
-      reportedUserId,
       issueType,
       issueTitle,
       description,
     });
 
-    /* ===== Populate Reporter & Reported User ===== */
-    const populatedReport = await Report.findById(report._id)
-      .populate("userId", "userName email role")
-      .populate("reportedUserId", "userName email role");
+    /* ===== Populate Reporter ===== */
+    const populatedReport = await Report.findById(report._id).populate(
+      "userId",
+      "userName email role"
+    );
+
+    // ✅ Send email notification to admin (non-blocking)
+    sendOtp
+      .sendReportNotification({
+        userName: reporter.userName || "User",
+        userEmail: reporter.email,
+        issueType,
+        issueTitle,
+        description,
+      })
+      .catch((err) => console.error("Report email notification failed:", err));
 
     return res.status(201).json({
       success: true,
-      message: "Report submitted successfully",
+      message: "Issue reported successfully",
       data: populatedReport,
     });
   } catch (error) {

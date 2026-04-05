@@ -5,10 +5,6 @@ const reportSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
-  reportedUserId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-  },
   issueType: {
     type: String,
     enum: [

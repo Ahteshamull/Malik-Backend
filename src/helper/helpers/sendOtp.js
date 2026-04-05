@@ -502,6 +502,77 @@ For your security, we recommend:
       throw new Error("Failed to send confirmation email");
     }
   }
+  async sendReportNotification(reportData) {
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+    const senderEmail =
+      process.env.EMAIL_FROM ||
+      process.env.OTP_EMAIL ||
+      process.env.EMAIL_USER;
+
+    const mailOptions = {
+      from: `"Caribee System" <${senderEmail}>`,
+      to: adminEmail,
+      subject: `[New Report] ${reportData.issueType}: ${reportData.issueTitle}`,
+      text: `
+A new report has been submitted.
+
+Reporter: ${reportData.userName} (${reportData.userEmail})
+Issue Type: ${reportData.issueType}
+Title: ${reportData.issueTitle}
+
+Description:
+${reportData.description}
+
+Date: ${new Date().toLocaleString()}
+      `.trim(),
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            .container { font-family: sans-serif; padding: 20px; color: #333; }
+            .header { background: #f44336; color: white; padding: 10px 20px; border-radius: 5px; }
+            .content { margin-top: 20px; line-height: 1.6; }
+            .label { font-weight: bold; color: #666; }
+            .value { margin-bottom: 15px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>New Issue Reported</h1>
+            </div>
+            <div class="content">
+              <div class="label">Reporter:</div>
+              <div class="value">${reportData.userName} (${reportData.userEmail})</div>
+              
+              <div class="label">Issue Type:</div>
+              <div class="value">${reportData.issueType}</div>
+              
+              <div class="label">Title:</div>
+              <div class="value">${reportData.issueTitle}</div>
+              
+              <div class="label">Description:</div>
+              <div class="value" style="background: #f5f5f5; padding: 15px; border-radius: 5px;">${reportData.description}</div>
+              
+              <div class="label">Reported At:</div>
+              <div class="value">${new Date().toLocaleString()}</div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+
+    try {
+      const transporter = this.getTransporter();
+      await transporter.sendMail(mailOptions);
+      return { success: true };
+    } catch (error) {
+      console.error("❌ Failed to send report notification email:", error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 export default new SendOtp();
