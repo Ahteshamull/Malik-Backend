@@ -13,7 +13,7 @@ export const createReport = async (req, res) => {
     // Reported user ID from params
     const { userId: reportedUserId } = req.params;
 
-    const { reportType, reason, description } = req.body;
+    const { issueType, issueTitle, description } = req.body;
 
     /* ===== Auth Check ===== */
     if (!reporterId) {
@@ -24,11 +24,11 @@ export const createReport = async (req, res) => {
     }
 
     /* ===== Required Fields Check ===== */
-    if (!reportedUserId || !reportType || !reason || !description) {
+    if (!reportedUserId || !issueType || !issueTitle || !description) {
       return res.status(400).json({
         success: false,
         message:
-          "reportedUserId (params), reportType, reason and description are required",
+          "reportedUserId (params), issueType, issueTitle and description are required",
       });
     }
 
@@ -57,15 +57,15 @@ export const createReport = async (req, res) => {
     const report = await Report.create({
       userId: reporterId,
       reportedUserId,
-      reportType,
-      reason,
+      issueType,
+      issueTitle,
       description,
     });
 
     /* ===== Populate Reporter & Reported User ===== */
     const populatedReport = await Report.findById(report._id)
-      .populate("userId", "name email role")
-      .populate("reportedUserId", "name email role");
+      .populate("userId", "userName email role")
+      .populate("reportedUserId", "userName email role");
 
     return res.status(201).json({
       success: true,

@@ -116,6 +116,7 @@ export const createUser = async (req, res) => {
       isVerify: false,
       registrationOtp: hashedOtp,
       otpExpiry,
+      expireAt: new Date(Date.now() + 5 * 60 * 1000), // Account expires (deletes) in 5 minutes if not verified
     });
 
     await user.save();
@@ -148,58 +149,87 @@ export const verifyRegistration = async (req, res) => {
 
   const normalizedEmail = email.toLowerCase().trim();
 
-  const user = await userModel.findOne({ email: normalizedEmail });
+  try {
+    const user = await userModel.findOne({ email: normalizedEmail });
 
-  if (!user) {
-    return res.status(404).json({
+    if (!user) {
+      return res.status(404).json({
+        error: true,
+        message: "User not found. Please register first.",
+      });
+    }
+
+    if (user.isVerify) {
+      return res.status(400).json({
+        error: true,
+        message: "This account is already verified. Please login.",
+      });
+    }
+
+    // Check OTP expiry
+    if (!user.otpExpiry || new Date() > user.otpExpiry) {
+      return res.status(400).json({
+        error: true,
+        message: "OTP has expired. Please register again.",
+      });
+    }
+
+    // Verify OTP
+    const isOtpValid = await bcrypt.compare(otp.toString(), user.registrationOtp);
+
+    if (!isOtpValid) {
+      return res.status(400).json({
+        error: true,
+        message: "Invalid OTP. Please try again.",
+      });
+    }
+
+    // ✅ Activate account - mark as verified and cancel the 5-min auto-deletion
+    user.isVerify = true;
+    user.registrationOtp = undefined;
+    user.otpExpiry = undefined;
+    
+    // Clear expireAt field so MongoDB doesn't delete the verified user
+    user.expireAt = undefined;
+    
+    await user.save({ validateBeforeSave: false });
+
+    // Notify admin (non-blocking)
+    notifyAdminOnUserCreated(user._id, user.userName, user.email).catch((err) =>
+      console.error("Notification failed:", err)
+    );
+
+    // ✅ Automatically generate tokens (Auto-login after verify)
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user);
+
+    const userData = await userModel
+      .findById(user._id)
+      .select("-password -confirmPassword -registrationOtp -otpExpiry");
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    };
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", refreshToken, cookieOptions)
+      .json({
+        success: true,
+        message: "Account verified successfully! You are now logged in.",
+        data: userData,
+        accessToken,
+        refreshToken,
+      });
+  } catch (error) {
+    console.error("Verify registration error:", error);
+    return res.status(500).json({
       error: true,
-      message: "User not found. Please register first.",
+      message: "Internal server error during verification",
     });
   }
-
-  if (user.isVerify) {
-    return res.status(400).json({
-      error: true,
-      message: "This account is already verified. Please login.",
-    });
-  }
-
-  // Check OTP expiry
-  if (!user.otpExpiry || new Date() > user.otpExpiry) {
-    return res.status(400).json({
-      error: true,
-      message: "OTP has expired. Please register again.",
-    });
-  }
-
-  // Verify OTP
-  const isOtpValid = await bcrypt.compare(otp.toString(), user.registrationOtp);
-
-  if (!isOtpValid) {
-    return res.status(400).json({
-      error: true,
-      message: "Invalid OTP. Please try again.",
-    });
-  }
-
-  // Activate account
-  user.isVerify = true;
-  user.registrationOtp = undefined;
-  user.otpExpiry = undefined;
-  await user.save({ validateBeforeSave: false });
-
-  // Notify admin
-  await notifyAdminOnUserCreated(user._id, user.userName, user.email);
-
-  const populatedUser = await userModel
-    .findById(user._id)
-    .select("-password -confirmPassword -registrationOtp -otpExpiry");
-
-  return res.status(201).json({
-    success: true,
-    message: "Account verified and created successfully! You can now login.",
-    data: populatedUser,
-  });
 };
 
 
@@ -538,6 +568,10 @@ export const ResendOtp = async (req, res) => {
     // Update registration OTP directly on the user document
     existingUser.registrationOtp = hashedOtp;
     existingUser.otpExpiry = otpExpiry;
+    
+    // Extend account expiry timer by another 5 minutes on resend
+    existingUser.expireAt = new Date(Date.now() + 5 * 60 * 1000);
+    
     await existingUser.save({ validateBeforeSave: false });
 
     // Send registration verification email

@@ -9,20 +9,18 @@ const reportSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
-  reportType: {
+  issueType: {
     type: String,
     enum: [
-      "payment_issue",
-      "content_issue",
-      "behavior_issue",
-      "fraud",
-      "spam",
+      "app_bug",
+      "incorect_information",
+      "listing_problem",
+      "account_issue",
       "other",
     ],
     required: true,
-
   },
-  reason: {
+  issueTitle: {
     type: String,
     required: true,
   },

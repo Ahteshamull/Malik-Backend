@@ -78,6 +78,11 @@ const userSchema = new Schema(
       default: [],
     },
 
+    // Account auto-deletion timer for unverified users
+    expireAt: {
+      type: Date,
+      index: { expires: 0 }, // Document will expire at the specific date/time set in this field
+    },
     // stripeAccountId: { type: String },
     // isStripeConnected: { type: Boolean, default: false },
   },
