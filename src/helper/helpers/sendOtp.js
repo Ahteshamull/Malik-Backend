@@ -143,31 +143,114 @@ Security Notice:
   }
 
   async sendRegistrationOTP(email, otp, userName = "User") {
+    const senderEmail =
+      process.env.EMAIL_FROM ||
+      process.env.OTP_EMAIL ||
+      process.env.EMAIL_USER;
+
     const mailOptions = {
-      from:
-        process.env.EMAIL_FROM ||
-        process.env.OTP_EMAIL ||
-        process.env.EMAIL_USER,
+      from: `"Caribee" <${senderEmail}>`,
+      replyTo: senderEmail,
       to: email,
-      subject: "Verify Your Account - Caribee",
+      subject: "Your Caribee Verification Code",
+      headers: {
+        "X-Mailer": "Caribee Mailer",
+        "X-Priority": "3",
+      },
+      // Plain-text fallback — critical for avoiding spam filters
+      text: `
+Welcome to Caribee, ${userName}!
+
+Thank you for registering. Please verify your email to activate your account.
+
+Your verification code: ${otp}
+
+This code will expire in 10 minutes.
+
+If you did not create an account, please ignore this email.
+
+© ${new Date().getFullYear()} Caribee. All rights reserved.
+      `.trim(),
       html: `
         <!DOCTYPE html>
-        <html>
-        <body style="font-family:Arial;background:#f4f6f8;padding:20px">
-          <div style="max-width:600px;margin:auto;background:#fff;border-radius:8px;padding:30px">
-            <h2 style="color:#4f46e5">👋 Welcome to Caribee, ${userName}!</h2>
-            <p>Thank you for registering. Please verify your email to activate your account.</p>
-            <p>Your verification code:</p>
-            <h1 style="background:#4f46e5;color:#fff;display:inline-block;padding:10px 20px;border-radius:6px;letter-spacing:8px">
-              ${otp}
-            </h1>
-            <p>This code will expire in <strong>10 minutes</strong>.</p>
-            <p style="color:#777;font-size:13px">
-              If you did not create an account, please ignore this email.
-            </p>
-            <hr />
-            <p style="font-size:12px;color:#999">© ${new Date().getFullYear()} Caribee</p>
-          </div>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+          <title>Verify Your Caribee Account</title>
+        </head>
+        <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+            <tr>
+              <td align="center" style="padding:40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0"
+                  style="max-width:600px;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);padding:36px 40px;text-align:center;">
+                      <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">
+                        Caribee
+                      </h1>
+                      <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">
+                        Email Verification
+                      </p>
+                    </td>
+                  </tr>
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding:40px 40px 20px;">
+                      <h2 style="margin:0 0 12px;color:#1a1a2e;font-size:20px;">
+                        👋 Welcome, ${userName}!
+                      </h2>
+                      <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6;">
+                        Thank you for signing up. Use the verification code below to activate your account.
+                      </p>
+                      <!-- OTP Box -->
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                        <tr>
+                          <td align="center" style="padding:28px 0;">
+                            <div style="display:inline-block;background:#4f46e5;color:#ffffff;font-size:36px;
+                              font-weight:800;letter-spacing:16px;padding:18px 32px;border-radius:10px;
+                              text-align:center;font-family:'Courier New',monospace;">
+                              ${otp}
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                      <p style="margin:0 0 8px;color:#555;font-size:14px;text-align:center;">
+                        ⏱ This code expires in <strong>10 minutes</strong>.
+                      </p>
+                    </td>
+                  </tr>
+                  <!-- Notice -->
+                  <tr>
+                    <td style="padding:0 40px 30px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                        <tr>
+                          <td style="background:#f8f7ff;border-left:4px solid #4f46e5;border-radius:4px;padding:14px 18px;">
+                            <p style="margin:0;color:#555;font-size:13px;line-height:1.5;">
+                              🔒 If you did not create a Caribee account, you can safely ignore this email.
+                              Do not share this code with anyone.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <!-- Footer -->
+                  <tr>
+                    <td style="background:#f4f6f8;padding:20px 40px;text-align:center;">
+                      <p style="margin:0;color:#999;font-size:12px;line-height:1.6;">
+                        © ${new Date().getFullYear()} Caribee. All rights reserved.<br />
+                        This is an automated message — please do not reply directly to this email.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
         </body>
         </html>
       `,
