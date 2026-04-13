@@ -8,7 +8,7 @@ import cookieParser from "cookie-parser";
 import dbConnect from "./config/database/dbConfig.js";
 import router from "./api/index.js";
 import cors from "cors";
-import { initializeSocket } from "./socket/connection/socket.Connection.js";
+
 
 const app = express();
 
@@ -16,7 +16,7 @@ const server = createServer(app);
 
 const PORT = process.env.PORT || 5000;
 
-initializeSocket(server);
+
 
 app.use(
   cors({
@@ -25,7 +25,7 @@ app.use(
   }),
 );
 
-app.use("/api/v1/payment/webhook", express.raw({ type: "application/json" }));
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -48,5 +48,5 @@ dbConnect();
 
 server.listen(PORT, () => {
   console.log(`🛜  Server running at ${PORT}`);
-  console.log(`⚡ Socket.IO server started`);
+
 });

@@ -1,5 +1,5 @@
 import Review from "../schema/review.modal.js";
-import Payment from "../../payment/schema/payment.modal.js";
+
 import userModel from "../../auth/schema/auth.modal.js";
 
 export const createReview = async (req, res) => {

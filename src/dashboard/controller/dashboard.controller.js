@@ -1,5 +1,5 @@
 import userModel from "../../auth/schema/auth.modal.js";
-import Payment from "../../payment/schema/payment.modal.js";
+
 
 export const dashboard = async (req, res) => {
   try {
@@ -62,125 +62,13 @@ export const userDashboard = async (req, res) => {
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-    // Get all user-specific data in parallel
-    const [
-      totalSpending,
-      monthlySpending,
-      lastMonthSpending,
-      totalEarnings,
-      monthlyEarnings,
-      lastMonthEarnings,
-    ] = await Promise.all([
-      Payment.aggregate([
-        {
-          $match: {
-            userId,
-            status: { $in: ["SUCCESS", "IN_PROGRESS", "HOLD"] },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: "$amount" },
-          },
-        },
-      ]),
-
-      Payment.aggregate([
-        {
-          $match: {
-            userId,
-            status: { $in: ["SUCCESS", "IN_PROGRESS || HOLD"] },
-            createdAt: {
-              $gte: new Date(currentYear, currentMonth, 1),
-              $lt: new Date(currentYear, currentMonth + 1, 1),
-            },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: "$amount" },
-          },
-        },
-      ]),
-
-      // Last month spending
-      Payment.aggregate([
-        {
-          $match: {
-            userId,
-            status: { $in: ["SUCCESS", "IN_PROGRESS || HOLD"] },
-            createdAt: {
-              $gte: new Date(lastMonthYear, lastMonth, 1),
-              $lt: new Date(lastMonthYear, lastMonth + 1, 1),
-            },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: "$amount" },
-          },
-        },
-      ]),
-
-      // Total earnings (for influencers)
-      Payment.aggregate([
-        {
-          $match: {
-            selectInfluencerOrHost: userId,
-            status: "SUCCESS",
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: "$influencer_amount" },
-          },
-        },
-      ]),
-
-      // Monthly earnings (current month)
-      Payment.aggregate([
-        {
-          $match: {
-            selectInfluencerOrHost: userId,
-            status: "SUCCESS",
-            createdAt: {
-              $gte: new Date(currentYear, currentMonth, 1),
-              $lt: new Date(currentYear, currentMonth + 1, 1),
-            },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: "$influencer_amount" },
-          },
-        },
-      ]),
-
-      // Last month earnings
-      Payment.aggregate([
-        {
-          $match: {
-            selectInfluencerOrHost: userId,
-            status: "SUCCESS",
-            createdAt: {
-              $gte: new Date(lastMonthYear, lastMonth, 1),
-              $lt: new Date(lastMonthYear, lastMonth + 1, 1),
-            },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: "$influencer_amount" },
-          },
-        },
-      ]),
-    ]);
+    // Payment logic removed as per user request
+    const totalSpending = [];
+    const monthlySpending = [];
+    const lastMonthSpending = [];
+    const totalEarnings = [];
+    const monthlyEarnings = [];
+    const lastMonthEarnings = [];
 
     // Calculate growth rates
     const currentSpending = monthlySpending[0]?.total || 0;

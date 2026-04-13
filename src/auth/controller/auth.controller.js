@@ -8,7 +8,7 @@ import sendOtp from "../../helper/helpers/sendOtp.js";
 import { notifyAdminOnUserCreated } from "../../notification/service/notification.service.js";
 import fs from "fs";
 import path from "path";
-import Payment from "../../payment/schema/payment.modal.js";
+
 import Notification from "../../notification/schema/notification.modal.js";
 
 export const createUser = async (req, res) => {
@@ -906,25 +906,9 @@ export const deleteMyAccount = async (req, res) => {
 
     // Delete user's related data
     await Promise.all([
-      // Delete user's listings
-      Listing.deleteMany({ userId }),
-
-      // Delete user's deals
-      Deal.deleteMany({ userId }),
-
-      // Delete user's payments
-      Payment.deleteMany({
-        $or: [{ userId }, { selectInfluencerOrHost: userId }],
-      }),
-
       // Delete user's notifications
       Notification.deleteMany({
         $or: [{ receiverId: userId }, { senderId: userId }],
-      }),
-
-      // Delete user's messages
-      Message.deleteMany({
-        $or: [{ senderId: userId }, { receiverId: userId }],
       }),
     ]);
 
