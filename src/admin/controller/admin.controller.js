@@ -77,15 +77,7 @@ const createAdmin = async (req, res) => {
       image: imagePath,
     });
 
-    // Generate tokens
-    const token = generateToken(admin._id, admin.role);
-    const refreshToken = generateRefreshToken(admin._id, admin.role);
-
-    // Save refresh token to database
-    admin.refreshToken = refreshToken;
-    await admin.save();
-
-    // Remove password from response
+    // Remove sensitive fields from response
     admin.password = undefined;
     admin.confirmPassword = undefined;
 
@@ -94,8 +86,6 @@ const createAdmin = async (req, res) => {
       message: "Admin created successfully",
       data: {
         admin,
-        token,
-        refreshToken,
       },
     });
   } catch (error) {
@@ -156,9 +146,10 @@ const adminLogin = async (req, res) => {
     admin.refreshToken = refreshToken;
     await admin.save();
 
-    // Remove password from response
+    // Remove sensitive and redundant fields from response
     admin.password = undefined;
     admin.confirmPassword = undefined;
+    admin.refreshToken = undefined;
 
     // Set token in cookie
     res.cookie("token", token, {
@@ -296,14 +287,18 @@ const updateAdminPersonalInfo = async (req, res) => {
     // Save updated admin
     await admin.save();
 
-    // Remove sensitive fields from response
+    // Remove sensitive and redundant fields from response
     admin.password = undefined;
     admin.confirmPassword = undefined;
+    admin.refreshToken = undefined;
+ 
 
     res.status(200).json({
       success: true,
       message: "Admin updated successfully",
-      data: admin,
+      data: {
+        admin,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -352,18 +347,39 @@ const deleteAdmin = async (req, res) => {
 
 const allAdmin = async (req, res) => {
   try {
-    // Get all admins from database, sorted by creation date (newest first)
-    const admins = await Admin.find({}).sort({ createdAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get current admin ID from request to exclude it from the list
+    const currentAdminId = req.user?._id || req.user?.id;
+    const filter = { _id: { $ne: currentAdminId } };
+
+    // Get total count for pagination metadata based on filter
+    const total = await Admin.countDocuments(filter);
+
+    // Get paginated admins from database, sorted by creation date (newest first)
+    const admins = await Admin.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     // Remove sensitive fields from response
     admins.forEach((admin) => {
       admin.password = undefined;
       admin.confirmPassword = undefined;
+      admin.refreshToken = undefined;
     });
 
     res.status(200).json({
       success: true,
       message: "Admins retrieved successfully",
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
       data: admins,
     });
   } catch (error) {

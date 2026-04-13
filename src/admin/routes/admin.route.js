@@ -36,7 +36,7 @@ router.post(
 router.post("/admin-login", adminLogin);
 
 //localhost:3000/api/v1/admin/update-admin-personal-info
-router.put(
+router.patch(
   "/update-admin-personal-info",
   upload.single("image"),
   errorCheck,
