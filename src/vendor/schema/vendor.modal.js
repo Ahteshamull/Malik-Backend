@@ -42,6 +42,9 @@ const vendorSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  image: {
+    type: String,
+  },
 });
 
 const Vendor = mongoose.model("Vendor", vendorSchema);
