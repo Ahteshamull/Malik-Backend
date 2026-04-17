@@ -12,6 +12,7 @@ import faq from "../faq/routes/index.js";
 import report from "../report/routes/index.js";
 import vendor from "../vendor/routes/index.js";
 import cetagory from "../cetagory/routes/index.js";
+import subCetagory from "../subCetagory/routes/index.js";
 const router = express.Router();
 const baseurl = process.env.BASE_URL || "/api/v1";
 
@@ -28,6 +29,8 @@ router.use(baseurl, faq);
 router.use(baseurl, report);
 router.use(baseurl, vendor);
 router.use(baseurl, cetagory);
+router.use(baseurl, subCetagory);
+
 // Update code
 router.use(baseurl, (req, res) => {
   return res.status(404).send({
