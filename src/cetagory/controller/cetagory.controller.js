@@ -1,4 +1,6 @@
 import Cetagory from "../schema/cetagory.modal.js";
+import fs from "fs";
+import path from "path";
 
 export const createCetagory = async (req, res) => {
     try {
@@ -22,7 +24,17 @@ export const allCetagory = async (req, res) => {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
-        res.status(200).json({ success: true, message: "Cetagory retrieved successfully", data: cetagory });
+        res.status(200).json({
+            success: true,
+            message: "Cetagory retrieved successfully",
+            meta: {
+                page,
+                limit,
+                total,
+                totalPage: Math.ceil(total / limit),
+            },
+            data: cetagory,
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -46,7 +58,27 @@ export const updateCetagory = async (req, res) => {
         if (!cetagory) {
             return res.status(404).json({ success: false, message: "Cetagory not found" });
         }
-        const updatedCetagory = await Cetagory.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { description } = req.body;
+    const updateData = { description };
+
+    if (req.file) {
+      const newImagePath = `/uploads/${req.file.filename}`;
+
+      // Delete old image file if it exists
+      if (cetagory.image && cetagory.image !== newImagePath) {
+        const oldImagePath = path.join(process.cwd(), cetagory.image);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+      updateData.image = newImagePath;
+    }
+
+    const updatedCetagory = await Cetagory.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true },
+    );
         res.status(200).json({ success: true, message: "Cetagory updated successfully", data: updatedCetagory });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -59,6 +91,15 @@ export const deleteCetagory = async (req, res) => {
         if (!cetagory) {
             return res.status(404).json({ success: false, message: "Cetagory not found" });
         }
+
+        // Delete image file if it exists
+        if (cetagory.image) {
+            const imagePath = path.join(process.cwd(), cetagory.image);
+            if (fs.existsSync(imagePath)) {
+                fs.unlinkSync(imagePath);
+            }
+        }
+
         res.status(200).json({ success: true, message: "Cetagory deleted successfully", data: cetagory });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

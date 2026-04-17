@@ -4,10 +4,7 @@ const cetagorySchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      enum: {
-        values: ["Resturant", "Recursion", "Event"],
-        message: "Invalid cetagory",
-      },
+      enum: ["Resturant", "Recursion", "Event"],
       required: true,
     },
     image: {
