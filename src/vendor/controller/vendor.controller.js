@@ -126,7 +126,7 @@ export const updateVendor = async (req, res) => {
     const updatedVendor = await Vendor.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
-      { new: true }
+      { new: true },
     );
 
     res.status(200).json({
