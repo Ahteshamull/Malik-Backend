@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 import Service from "../schema/service.modal.js";
+import Cetagory from "../../cetagory/schema/cetagory.modal.js";
+import SubCetagory from "../../subCetagory/schema/cetagory.modal.js";
 
 export const createService = async (req, res) => {
   try {
@@ -40,21 +42,40 @@ export const createService = async (req, res) => {
 
 export const allServices = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, cetagory, subCetagory } = req.query;
+    const { page = 1, limit = 10, search, type, name } = req.query;
+    
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
     const filter = { isDeleted: false };
 
+    // Handle search by service name (Partial match, case-insensitive)
     if (search) {
-      filter.$text = { $search: search };
+      filter.name = { $regex: search, $options: "i" };
     }
-    if (cetagory) filter.cetagory = cetagory;
-    if (subCetagory) filter.subCetagory = subCetagory;
+
+
+    // Handle Category/SubCategory lookup by NAME from query
+    if (name) {
+      if (type === "cetagory" || type === "category") {
+        const cat = await Cetagory.findOne({ name: { $regex: new RegExp(`^${name}$`, "i") } });
+        // If name was provided but not found, set filter to an ID that won't exist
+        filter.cetagory = cat ? cat._id : "000000000000000000000000"; 
+      }
+
+      if (type === "subCetagory" || type === "subcategory") {
+        const subCat = await SubCetagory.findOne({ name: { $regex: new RegExp(`^${name}$`, "i") } });
+        // If name was provided but not found, set filter to an ID that won't exist
+        filter.subCetagory = subCat ? subCat._id : "000000000000000000000000";
+      }
+    }
+
+
 
     const total = await Service.countDocuments(filter);
     const totalPages = Math.ceil(total / limitNum);
+
 
     const services = await Service.find(filter)
       .populate("cetagory", "name")
@@ -85,10 +106,15 @@ export const allServices = async (req, res) => {
 
 export const singleService = async (req, res) => {
   try {
-    const { id } = req.params;
-    const service = await Service.findOne({ _id: id, isDeleted: false })
+    const { name } = req.params;
+    // Find service by name (exact match, case-insensitive)
+    const service = await Service.findOne({ 
+      name: { $regex: new RegExp(`^${name}$`, "i") }, 
+      isDeleted: false 
+    })
       .populate("cetagory")
       .populate("subCetagory");
+
 
     if (!service) {
       return res.status(404).json({
@@ -188,3 +214,5 @@ export const deleteService = async (req, res) => {
     });
   }
 };
+
+
