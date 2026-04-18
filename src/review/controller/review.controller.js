@@ -1,17 +1,17 @@
-import Review from "../schema/review.modal.js";
+import Retting from "../schema/retting.modal.js";
 
 import userModel from "../../auth/schema/auth.modal.js";
 
-export const createReview = async (req, res) => {
+export const createRetting = async (req, res) => {
   return res.status(503).json({
-    message: "Review creation is currently disabled",
+    message: "Retting creation is currently disabled",
     reason: "Collaboration features have been removed",
   });
 };
 
-export const userPersonalReview = async (req, res) => {
+export const userPersonalRetting = async (req, res) => {
   try {
-    const { page = 1, limit = 10, reviewType } = req.query;
+    const { page = 1, limit = 10, RettingType } = req.query;
 
     // Get user ID from authenticated user (from JWT token)
     const userId = req.user?.id || req.user?._id;
@@ -29,47 +29,47 @@ export const userPersonalReview = async (req, res) => {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    // Build filter - get reviews where user is either reviewer or reviewee
+    // Build filter - get Rettings where user is either Rettinger or Rettingee
     const filter = {
       isDeleted: false,
       $or: [
-        { reviewerId: userId.toString() }, // Reviews I wrote
-        { revieweeId: userId.toString() }, // Reviews about me
+        { RettingerId: userId.toString() }, // Rettings I wrote
+        { RettingeeId: userId.toString() }, // Rettings about me
       ],
     };
 
-    // Filter by review type if specified
-    if (reviewType) {
-      filter.reviewType = reviewType;
+    // Filter by Retting type if specified
+    if (RettingType) {
+      filter.RettingType = RettingType;
     }
 
     // Get total count
-    const total = await Review.countDocuments(filter);
+    const total = await Retting.countDocuments(filter);
 
-    // Get reviews with pagination and populate related data
-    const reviews = await Review.find(filter)
+    // Get Rettings with pagination and populate related data
+    const Rettings = await Retting.find(filter)
       .populate("collaborationId", "title status")
-      .populate("reviewerId", "name email image")
-      .populate("revieweeId", "name email image")
+      .populate("RettingerId", "name email image")
+      .populate("RettingeeId", "name email image")
       .sort({ createdAt: -1 })
       .limit(limitNum)
       .skip(skip);
 
     // Get statistics
-    const reviewsWritten = await Review.countDocuments({
-      reviewerId: userId.toString(),
+    const RettingsWritten = await Retting.countDocuments({
+      RettingerId: userId.toString(),
       isDeleted: false,
     });
 
-    const reviewsReceived = await Review.countDocuments({
-      revieweeId: userId.toString(),
+    const RettingsReceived = await Retting.countDocuments({
+      RettingeeId: userId.toString(),
       isDeleted: false,
     });
 
-    const averageRating = await Review.aggregate([
+    const averageRating = await Retting.aggregate([
       {
         $match: {
-          revieweeId: userId.toString(),
+          RettingeeId: userId.toString(),
           isDeleted: false,
         },
       },
@@ -84,11 +84,11 @@ export const userPersonalReview = async (req, res) => {
     // Get user details with rating info
     const userWithRatings = await userModel
       .findById(userId)
-      .select("name email image averageRating totalReviews");
+      .select("name email image averageRating totalRettings");
 
     return res.status(200).json({
       success: true,
-      message: "User reviews retrieved successfully",
+      message: "User Rettings retrieved successfully",
       data: {
         user: userWithRatings,
         pagination: {
@@ -98,30 +98,30 @@ export const userPersonalReview = async (req, res) => {
           limit: limitNum,
         },
         meta: {
-          reviewsWritten,
-          reviewsReceived,
+          RettingsWritten,
+          RettingsReceived,
           averageRating: averageRating[0]?.avgRating || 0,
           filterApplied: {
-            reviewType: reviewType || null,
+            RettingType: RettingType || null,
           },
         },
-        reviews,
+        Rettings,
       },
     });
   } catch (error) {
-    console.error("Error fetching user reviews:", error);
+    console.error("Error fetching user Rettings:", error);
     return res.status(500).json({
       success: false,
-      message: "Error fetching user reviews",
+      message: "Error fetching user Rettings",
       error: error.message,
     });
   }
 };
 
-export const userReview = async (req, res) => {
+export const userRetting = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { page = 1, limit = 10, reviewType } = req.query;
+    const { page = 1, limit = 10, RettingType } = req.query;
 
     // Validate user ID
     if (!userId) {
@@ -136,47 +136,47 @@ export const userReview = async (req, res) => {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    // Build filter - get reviews where user is either reviewer or reviewee
+    // Build filter - get Rettings where user is either Rettinger or Rettingee
     const filter = {
       isDeleted: false,
       $or: [
-        { reviewerId: userId }, // Reviews user wrote
-        { revieweeId: userId }, // Reviews about user
+        { RettingerId: userId }, // Rettings user wrote
+        { RettingeeId: userId }, // Rettings about user
       ],
     };
 
-    // Filter by review type if specified
-    if (reviewType) {
-      filter.reviewType = reviewType;
+    // Filter by Retting type if specified
+    if (RettingType) {
+      filter.RettingType = RettingType;
     }
 
     // Get total count
-    const total = await Review.countDocuments(filter);
+    const total = await Retting.countDocuments(filter);
 
-    // Get reviews with pagination and populate related data
-    const reviews = await Review.find(filter)
+    // Get Rettings with pagination and populate related data
+    const Rettings = await Retting.find(filter)
       .populate("collaborationId", "title status")
-      .populate("reviewerId", "name email image")
-      .populate("revieweeId", "name email image")
+      .populate("RettingerId", "name email image")
+      .populate("RettingeeId", "name email image")
       .sort({ createdAt: -1 })
       .limit(limitNum)
       .skip(skip);
 
     // Get statistics
-    const reviewsWritten = await Review.countDocuments({
-      reviewerId: userId,
+    const RettingsWritten = await Retting.countDocuments({
+      RettingerId: userId,
       isDeleted: false,
     });
 
-    const reviewsReceived = await Review.countDocuments({
-      revieweeId: userId,
+    const RettingsReceived = await Retting.countDocuments({
+      RettingeeId: userId,
       isDeleted: false,
     });
 
-    const averageRating = await Review.aggregate([
+    const averageRating = await Retting.aggregate([
       {
         $match: {
-          revieweeId: userId,
+          RettingeeId: userId,
           isDeleted: false,
         },
       },
@@ -191,11 +191,11 @@ export const userReview = async (req, res) => {
     // Get user details with rating info
     const userWithRatings = await userModel
       .findById(userId)
-      .select("name email image averageRating totalReviews");
+      .select("name email image averageRating totalRettings");
 
     return res.status(200).json({
       success: true,
-      message: "User reviews retrieved successfully",
+      message: "User Rettings retrieved successfully",
       data: {
         user: userWithRatings,
         pagination: {
@@ -206,29 +206,29 @@ export const userReview = async (req, res) => {
         },
         meta: {
           userId,
-          reviewsWritten,
-          reviewsReceived,
+          RettingsWritten,
+          RettingsReceived,
           averageRating: averageRating[0]?.avgRating || 0,
           filterApplied: {
-            reviewType: reviewType || null,
+            RettingType: RettingType || null,
           },
         },
-        reviews,
+        Rettings,
       },
     });
   } catch (error) {
-    console.error("Error fetching user reviews:", error);
+    console.error("Error fetching user Rettings:", error);
     return res.status(500).json({
       success: false,
-      message: "Error fetching user reviews",
+      message: "Error fetching user Rettings",
       error: error.message,
     });
   }
 };
 
-export const deleteReview = async (req, res) => {
+export const deleteRetting = async (req, res) => {
   try {
-    const { reviewId } = req.params;
+    const { RettingId } = req.params;
 
     // Get user ID from authenticated user (from JWT token)
     const userId = req.user?.id || req.user?._id;
@@ -241,61 +241,61 @@ export const deleteReview = async (req, res) => {
       });
     }
 
-    // Validate review ID
-    if (!reviewId) {
+    // Validate Retting ID
+    if (!RettingId) {
       return res.status(400).json({
         success: false,
-        message: "Review ID is required",
+        message: "Retting ID is required",
       });
     }
 
-    // Find the review
-    const review = await Review.findById(reviewId);
+    // Find the Retting
+    const Retting = await Retting.findById(RettingId);
 
-    if (!review) {
+    if (!Retting) {
       return res.status(404).json({
         success: false,
-        message: "Review not found",
+        message: "Retting not found",
       });
     }
 
-    // Check if review is already deleted
-    if (review.isDeleted) {
+    // Check if Retting is already deleted
+    if (Retting.isDeleted) {
       return res.status(400).json({
         success: false,
-        message: "Review is already deleted",
+        message: "Retting is already deleted",
       });
     }
 
-    // Check if user is authorized to delete this review
-    // Only the reviewer (who wrote the review) can delete it
-    if (review.reviewerId.toString() !== userId.toString()) {
+    // Check if user is authorized to delete this Retting
+    // Only the Rettinger (who wrote the Retting) can delete it
+    if (Retting.RettingerId.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
-        message: "Only the reviewer can delete this review",
+        message: "Only the Rettinger can delete this Retting",
       });
     }
 
-    // Soft delete the review
-    await Review.findByIdAndUpdate(reviewId, { isDeleted: true });
+    // Soft delete the Retting
+    await Retting.findByIdAndUpdate(RettingId, { isDeleted: true });
 
     return res.status(200).json({
       success: true,
-      message: "Review deleted successfully",
+      message: "Retting deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting review:", error);
+    console.error("Error deleting Retting:", error);
     return res.status(500).json({
       success: false,
-      message: "Error deleting review",
+      message: "Error deleting Retting",
       error: error.message,
     });
   }
 };
 
-export const allReviews = async (req, res) => {
+export const allRettings = async (req, res) => {
   try {
-    const { page = 1, limit = 10, reviewType, rating } = req.query;
+    const { page = 1, limit = 10, RettingType, rating } = req.query;
 
     // Convert pagination parameters
     const pageNum = parseInt(page);
@@ -305,9 +305,9 @@ export const allReviews = async (req, res) => {
     // Build filter
     const filter = { isDeleted: false };
 
-    // Filter by review type if specified
-    if (reviewType) {
-      filter.reviewType = reviewType;
+    // Filter by Retting type if specified
+    if (RettingType) {
+      filter.RettingType = RettingType;
     }
 
     // Filter by rating if specified
@@ -316,33 +316,33 @@ export const allReviews = async (req, res) => {
     }
 
     // Get total count
-    const total = await Review.countDocuments(filter);
+    const total = await Retting.countDocuments(filter);
 
-    // Get reviews with pagination and populate related data
-    const reviews = await Review.find(filter)
+    // Get Rettings with pagination and populate related data
+    const Rettings = await Retting.find(filter)
       .populate("collaborationId", "title status")
-      .populate("reviewerId", "name email image")
-      .populate("revieweeId", "name email image")
+      .populate("RettingerId", "name email image")
+      .populate("RettingeeId", "name email image")
       .sort({ createdAt: -1 })
       .limit(limitNum)
       .skip(skip);
 
     // Get statistics
-    const totalReviews = await Review.countDocuments({ isDeleted: false });
+    const totalRettings = await Retting.countDocuments({ isDeleted: false });
 
-    const reviewsByType = await Review.aggregate([
+    const RettingsByType = await Retting.aggregate([
       {
         $match: { isDeleted: false },
       },
       {
         $group: {
-          _id: "$reviewType",
+          _id: "$RettingType",
           count: { $sum: 1 },
         },
       },
     ]);
 
-    const reviewsByRating = await Review.aggregate([
+    const RettingsByRating = await Retting.aggregate([
       {
         $match: { isDeleted: false },
       },
@@ -355,7 +355,7 @@ export const allReviews = async (req, res) => {
       { $sort: { _id: -1 } },
     ]);
 
-    const averageRating = await Review.aggregate([
+    const averageRating = await Retting.aggregate([
       {
         $match: { isDeleted: false },
       },
@@ -369,7 +369,7 @@ export const allReviews = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "All reviews retrieved successfully",
+      message: "All Rettings retrieved successfully",
       data: {
         pagination: {
           currentPage: pageNum,
@@ -378,23 +378,23 @@ export const allReviews = async (req, res) => {
           limit: limitNum,
         },
         meta: {
-          totalReviews,
+          totalRettings,
           averageRating: averageRating[0]?.avgRating || 0,
-          reviewsByType,
-          reviewsByRating,
+          RettingsByType,
+          RettingsByRating,
           filterApplied: {
-            reviewType: reviewType || null,
+            RettingType: RettingType || null,
             rating: rating || null,
           },
         },
-        reviews,
+        Rettings,
       },
     });
   } catch (error) {
-    console.error("Error fetching all reviews:", error);
+    console.error("Error fetching all Rettings:", error);
     return res.status(500).json({
       success: false,
-      message: "Error fetching all reviews",
+      message: "Error fetching all Rettings",
       error: error.message,
     });
   }
