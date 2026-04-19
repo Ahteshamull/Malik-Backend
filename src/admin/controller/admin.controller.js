@@ -447,7 +447,7 @@ const forgotPassAdmin = async (req, res) => {
 
   reset.hashedOTP = otpService.hashOTP(otp);
   reset.otpCreatedAt = new Date();
-  reset.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  reset.otpExpiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes limit
   reset.attempts = 0;
   reset.verified = false;
 
@@ -459,50 +459,52 @@ const forgotPassAdmin = async (req, res) => {
 };
 
 const OTPVerifyAdmin = async (req, res) => {
-  const { otp } = req.body;
-  if (!otp) {
-    return res.status(400).json({ message: "OTP is required" });
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res.status(400).json({ message: "Email and OTP are required" });
   }
 
   try {
-    // Find all unverified OTP records
-    const resets = await PasswordReset.find({ verified: false });
-
-    // Find the matching OTP by verification
-    let reset = null;
-    for (const resetRecord of resets) {
-      const isValidOTP = await otpService.verifyOTP(otp, resetRecord.hashedOTP);
-      if (isValidOTP) {
-        reset = resetRecord;
-        break;
-      }
-    }
+    const reset = await PasswordReset.findOne({ email, verified: false });
 
     if (!reset) {
-      return res.status(404).json({ message: "Invalid OTP" });
+      return res.status(404).json({ message: "No active OTP request found for this email" });
     }
 
-    if (reset.verified) {
-      return res.status(400).json({ message: "OTP already verified" });
+    // Check if account is blocked due to too many attempts
+    const attemptCheck = otpService.canAttempt(reset);
+    if (!attemptCheck.allowed) {
+      return res.status(429).json({ message: attemptCheck.message });
+    }
+
+    // Increment attempts
+    reset.attempts += 1;
+    reset.lastAttemptAt = new Date();
+
+    const isValidOTP = await otpService.verifyOTP(otp, reset.hashedOTP);
+
+    if (!isValidOTP) {
+      await reset.save();
+      return res.status(401).json({ 
+        message: "Invalid OTP", 
+        remainingAttempts: Math.max(0, 5 - reset.attempts) 
+      });
     }
 
     if (reset.otpExpiresAt < new Date()) {
+      await reset.save();
       return res.status(400).json({ message: "OTP expired" });
-    }
-
-    if (reset.attempts >= 3) {
-      return res
-        .status(429)
-        .json({ message: "Too many attempts. Please request new OTP" });
     }
 
     reset.verified = true;
     reset.verifiedAt = new Date();
+    // Invalidate the OTP after successful verification so it can't be used again
+    reset.hashedOTP = "verified_and_invalidated"; 
     await reset.save();
 
     res.json({
       success: true,
-      message: "OTP verified successfully",
+      message: "OTP verified successfully. You can now reset your password.",
       email: reset.email,
     });
   } catch (error) {

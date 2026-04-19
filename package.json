@@ -1,7 +1,7 @@
 {
-  "name": "hostingflow",
+  "name": "malik-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Malik Backend API ",
   "main": "index.js",
   "type": "module",
   "scripts": {
