@@ -52,23 +52,16 @@ const serviceSchema = new mongoose.Schema(
     },
     offerType:{
      type: String,
-   },
+    },
+    photoOfVisitor: [{
+      type: String,
+    }],
+    hotelMenu: [{
+      type: String,
+    }],
     date: {
       type: String,
     },
-    // Reference to the rating/review data
-    rating: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Retting",
-    },
-    // Array of review references
-    reviews: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Retting",
-      },
-    ],
-
     // These should be Numbers to store aggregate values
     averageRating: {
       type: Number,

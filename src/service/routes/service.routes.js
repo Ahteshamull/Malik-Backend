@@ -19,7 +19,7 @@ const router = express.Router();
 router.post(
   "/create-service",
   superAdminMiddleware,
-  upload.single("image"),
+  upload.fields([{ name: "image", maxCount: 1 }, { name: "photoOfVisitor", maxCount: 10 }, { name: "hotelMenu", maxCount: 10 }]),
   errorCheck,
   createService,
 );
@@ -33,9 +33,9 @@ router.get("/all-services", allServices);
 
 
 
-//localhost:3000/api/v1/service/single-service/:name
+//localhost:3000/api/v1/service/single-service/:id
 // Get a single service
-router.get("/single-service/:name", singleService);
+router.get("/single-service/:id", singleService);
 
 
 //localhost:3000/api/v1/service/update-service/:id
@@ -43,7 +43,7 @@ router.get("/single-service/:name", singleService);
 router.patch(
   "/update-service/:id",
   superAdminMiddleware,
-  upload.single("image"),
+  upload.fields([{ name: "image", maxCount: 1 }, { name: "photoOfVisitor", maxCount: 10 }, { name: "hotelMenu", maxCount: 10 }]),
   errorCheck,
   updateService,
 );

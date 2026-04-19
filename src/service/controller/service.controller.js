@@ -1,5 +1,7 @@
 import fs from "fs";
 import path from "path";
+import axios from "axios";
+
 import Service from "../schema/service.modal.js";
 import Cetagory from "../../cetagory/schema/cetagory.modal.js";
 import SubCetagory from "../../subCetagory/schema/cetagory.modal.js";
@@ -19,11 +21,17 @@ export const createService = async (req, res) => {
     }
 
     // Handle image upload if exists
-    if (req.file) {
-      serviceData.image = `/uploads/${req.file.filename}`;
+    if (req.files) {
+      if (req.files.image) serviceData.image = `/uploads/${req.files.image[0].filename}`;
+      if (req.files.photoOfVisitor) serviceData.photoOfVisitor = req.files.photoOfVisitor.map(file => `/uploads/${file.filename}`);
+      if (req.files.hotelMenu) serviceData.hotelMenu = req.files.hotelMenu.map(file => `/uploads/${file.filename}`);
     }
 
     const service = await Service.create(serviceData);
+
+    // Populate category and subcategory
+    await service.populate("cetagory", "name");
+    await service.populate("subCetagory", "name");
 
     return res.status(201).json({
       success: true,
@@ -40,22 +48,23 @@ export const createService = async (req, res) => {
   }
 };
 
+
 export const allServices = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
-      search, 
-      type, 
-      name, 
-      offer, 
-      offerType, 
-      cetagory: cetagoryQuery, 
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      type,
+      name,
+      offer,
+      offerType,
+      cetagory: cetagoryQuery,
       category: categoryQuery,
       subCetagory: subCetagoryQuery,
-      subcategory: subCategoryQuery
+      subcategory: subCategoryQuery,
     } = req.query;
-    
+
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
@@ -77,26 +86,32 @@ export const allServices = async (req, res) => {
       filter.offerType = offerType;
     }
 
-
     // Handle Category lookup by name
-    const targetCategory = cetagoryQuery || categoryQuery || ( (type === "cetagory" || type === "category") ? name : null );
+    const targetCategory =
+      cetagoryQuery ||
+      categoryQuery ||
+      (type === "cetagory" || type === "category" ? name : null);
     if (targetCategory) {
-      const cat = await Cetagory.findOne({ name: { $regex: new RegExp(`^${targetCategory}$`, "i") } });
-      filter.cetagory = cat ? cat._id : "000000000000000000000000"; 
+      const cat = await Cetagory.findOne({
+        name: { $regex: new RegExp(`^${targetCategory}$`, "i") },
+      });
+      filter.cetagory = cat ? cat._id : "000000000000000000000000";
     }
 
     // Handle SubCategory lookup by name
-    const targetSubCategory = subCetagoryQuery || subCategoryQuery || ( (type === "subCetagory" || type === "subcategory") ? name : null );
+    const targetSubCategory =
+      subCetagoryQuery ||
+      subCategoryQuery ||
+      (type === "subCetagory" || type === "subcategory" ? name : null);
     if (targetSubCategory) {
-      const subCat = await SubCetagory.findOne({ name: { $regex: new RegExp(`^${targetSubCategory}$`, "i") } });
+      const subCat = await SubCetagory.findOne({
+        name: { $regex: new RegExp(`^${targetSubCategory}$`, "i") },
+      });
       filter.subCetagory = subCat ? subCat._id : "000000000000000000000000";
     }
 
-
-
     const total = await Service.countDocuments(filter);
     const totalPages = Math.ceil(total / limitNum);
-
 
     const services = await Service.find(filter)
       .populate("cetagory", "name")
@@ -127,15 +142,14 @@ export const allServices = async (req, res) => {
 
 export const singleService = async (req, res) => {
   try {
-    const { name } = req.params;
-    // Find service by name (exact match, case-insensitive)
-    const service = await Service.findOne({ 
-      name: { $regex: new RegExp(`^${name}$`, "i") }, 
-      isDeleted: false 
+    const { id } = req.params;
+    // Find service by ID and ensure it is not deleted
+    const service = await Service.findOne({
+      _id: id,
+      isDeleted: false,
     })
       .populate("cetagory")
       .populate("subCetagory");
-
 
     if (!service) {
       return res.status(404).json({
@@ -172,18 +186,38 @@ export const updateService = async (req, res) => {
       }
     }
 
-    // Handle image update and old image deletion
-    if (req.file) {
+    // Handle file updates and old file deletion
+    if (req.files) {
       const existingService = await Service.findById(id);
-      if (existingService && existingService.image) {
-        const oldImagePath = path.join(process.cwd(), existingService.image);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
+      
+      const fileFieldsArray = ["photoOfVisitor", "hotelMenu"];
+      
+      // Update arrays of files
+      fileFieldsArray.forEach((field) => {
+        if (req.files[field]) {
+          // Delete old files if they exist
+          if (existingService && Array.isArray(existingService[field])) {
+            existingService[field].forEach((oldFileName) => {
+              if(oldFileName) {
+                const oldFilePath = path.join(process.cwd(), oldFileName);
+                if (fs.existsSync(oldFilePath)) fs.unlinkSync(oldFilePath);
+              }
+            });
+          }
+          // Set new file paths array
+          updateData[field] = req.files[field].map(file => `/uploads/${file.filename}`);
         }
-      }
-      updateData.image = `/uploads/${req.file.filename}`;
-    }
+      });
 
+      // Update single image
+      if (req.files.image) {
+        if (existingService && existingService.image) {
+          const oldFilePath = path.join(process.cwd(), existingService.image);
+          if (fs.existsSync(oldFilePath)) fs.unlinkSync(oldFilePath);
+        }
+        updateData.image = `/uploads/${req.files.image[0].filename}`;
+      }
+    }
 
     const service = await Service.findByIdAndUpdate(id, updateData, {
       new: true,
@@ -235,5 +269,3 @@ export const deleteService = async (req, res) => {
     });
   }
 };
-
-
