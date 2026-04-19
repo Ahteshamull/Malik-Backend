@@ -59,6 +59,10 @@ const serviceSchema = new mongoose.Schema(
     hotelMenu: [{
       type: String,
     }],
+    badges: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Badge",
+    }],
     date: {
       type: String,
     },
@@ -68,6 +72,10 @@ const serviceSchema = new mongoose.Schema(
       default: 0,
     },
     totalReviews: {
+      type: Number,
+      default: 0,
+    },
+    responseTimeHours: {
       type: Number,
       default: 0,
     },

@@ -5,6 +5,7 @@ import axios from "axios";
 import Service from "../schema/service.modal.js";
 import Cetagory from "../../cetagory/schema/cetagory.modal.js";
 import SubCetagory from "../../subCetagory/schema/cetagory.modal.js";
+import { autoAssignBadges } from "../../badges/controller/badge.controller.js";
 
 export const createService = async (req, res) => {
   try {
@@ -29,9 +30,14 @@ export const createService = async (req, res) => {
 
     const service = await Service.create(serviceData);
 
+    // Automatically check and assign badges to the new service
+    await autoAssignBadges(service._id);
+
     // Populate category and subcategory
     await service.populate("cetagory", "name");
     await service.populate("subCetagory", "name");
+    // Also populate newly assigned badges
+    await service.populate("badges");
 
     return res.status(201).json({
       success: true,
@@ -116,6 +122,7 @@ export const allServices = async (req, res) => {
     const services = await Service.find(filter)
       .populate("cetagory", "name")
       .populate("subCetagory", "name")
+      .populate("badges")
       .sort({ createdAt: -1 })
       .limit(limitNum)
       .skip(skip);
@@ -149,7 +156,8 @@ export const singleService = async (req, res) => {
       isDeleted: false,
     })
       .populate("cetagory")
-      .populate("subCetagory");
+      .populate("subCetagory")
+      .populate("badges");
 
     if (!service) {
       return res.status(404).json({
@@ -231,10 +239,19 @@ export const updateService = async (req, res) => {
       });
     }
 
+    // Trigger automatic badge assignment evaluation when service is updated
+    await autoAssignBadges(service._id);
+    
+    // Fetch again to get fully populated badges
+    const updatedService = await Service.findById(service._id)
+      .populate("cetagory")
+      .populate("subCetagory")
+      .populate("badges");
+
     return res.status(200).json({
       success: true,
       message: "Service updated successfully",
-      data: service,
+      data: updatedService,
     });
   } catch (error) {
     return res.status(500).json({

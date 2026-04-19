@@ -14,6 +14,7 @@ import vendor from "../vendor/routes/index.js";
 import cetagory from "../cetagory/routes/index.js";
 import subCetagory from "../subCetagory/routes/index.js";
 import service from "../service/routes/index.js";
+import badge from "../badges/routes/index.js";
 
 
 
@@ -35,6 +36,7 @@ router.use(baseurl, vendor);
 router.use(baseurl, cetagory);
 router.use(baseurl, subCetagory);
 router.use(baseurl, service);
+router.use(baseurl, badge);
 
 // Update code
 router.use(baseurl, (req, res) => {
