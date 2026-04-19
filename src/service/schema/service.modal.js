@@ -46,6 +46,13 @@ const serviceSchema = new mongoose.Schema(
     endTime: {
       type: String,
     },
+    offer: {
+      type: Boolean,
+      default: false,
+    },
+    offerType:{
+     type: String,
+   },
     date: {
       type: String,
     },

@@ -25,10 +25,10 @@ router.post(
 );
 
 //localhost:3000/api/v1/service/all-services
-// ?search=Dental	Returns all services with "Dental" in their name (Partial match).
-// ?type=cetagory&name=Resturant	Returns all services belonging to the "Resturant" category.
-// ?type=subCetagory&name=ValidSub	Returns all services belonging to the "ValidSub" sub-category.
-// ?type=subCetagory&name=dfadsf...	Returns [] (Empty) because that sub-category name does not exist.
+// ?search=Dental	Returns all services with "Dental" in their name.
+// ?cetagory=Resturant	Returns all services belonging to "Resturant" category.
+// ?offer=true&cetagory=Resturant	Returns services in "Resturant" category that have an offer.
+// ?offerType=limited	Returns services with a specific offer type.
 router.get("/all-services", allServices);
 
 

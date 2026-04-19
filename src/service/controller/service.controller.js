@@ -42,7 +42,19 @@ export const createService = async (req, res) => {
 
 export const allServices = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, type, name } = req.query;
+    const { 
+      page = 1, 
+      limit = 10, 
+      search, 
+      type, 
+      name, 
+      offer, 
+      offerType, 
+      cetagory: cetagoryQuery, 
+      category: categoryQuery,
+      subCetagory: subCetagoryQuery,
+      subcategory: subCategoryQuery
+    } = req.query;
     
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
@@ -55,20 +67,29 @@ export const allServices = async (req, res) => {
       filter.name = { $regex: search, $options: "i" };
     }
 
+    // Handle offer filtering
+    if (offer) {
+      filter.offer = offer === "true";
+    }
 
-    // Handle Category/SubCategory lookup by NAME from query
-    if (name) {
-      if (type === "cetagory" || type === "category") {
-        const cat = await Cetagory.findOne({ name: { $regex: new RegExp(`^${name}$`, "i") } });
-        // If name was provided but not found, set filter to an ID that won't exist
-        filter.cetagory = cat ? cat._id : "000000000000000000000000"; 
-      }
+    // Handle offerType filtering
+    if (offerType) {
+      filter.offerType = offerType;
+    }
 
-      if (type === "subCetagory" || type === "subcategory") {
-        const subCat = await SubCetagory.findOne({ name: { $regex: new RegExp(`^${name}$`, "i") } });
-        // If name was provided but not found, set filter to an ID that won't exist
-        filter.subCetagory = subCat ? subCat._id : "000000000000000000000000";
-      }
+
+    // Handle Category lookup by name
+    const targetCategory = cetagoryQuery || categoryQuery || ( (type === "cetagory" || type === "category") ? name : null );
+    if (targetCategory) {
+      const cat = await Cetagory.findOne({ name: { $regex: new RegExp(`^${targetCategory}$`, "i") } });
+      filter.cetagory = cat ? cat._id : "000000000000000000000000"; 
+    }
+
+    // Handle SubCategory lookup by name
+    const targetSubCategory = subCetagoryQuery || subCategoryQuery || ( (type === "subCetagory" || type === "subcategory") ? name : null );
+    if (targetSubCategory) {
+      const subCat = await SubCetagory.findOne({ name: { $regex: new RegExp(`^${targetSubCategory}$`, "i") } });
+      filter.subCetagory = subCat ? subCat._id : "000000000000000000000000";
     }
 
 
