@@ -4,7 +4,7 @@ const cetagorySchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      enum: ["Resturants", "Experiences", "Events"],
+      enum: ["Resturants", "Excursions", "Events"],
       required: true,
     },
     image: {
