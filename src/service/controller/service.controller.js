@@ -1,11 +1,13 @@
 import fs from "fs";
 import path from "path";
 import axios from "axios";
+import jwt from "jsonwebtoken";
 
 import Service from "../schema/service.modal.js";
 import Cetagory from "../../cetagory/schema/cetagory.modal.js";
 import SubCetagory from "../../subCetagory/schema/cetagory.modal.js";
 import { autoAssignBadges } from "../../badges/controller/badge.controller.js";
+import Favorite from "../schema/favorite.modal.js";
 
 export const createService = async (req, res) => {
   try {
@@ -119,6 +121,24 @@ export const allServices = async (req, res) => {
     const total = await Service.countDocuments(filter);
     const totalPages = Math.ceil(total / limitNum);
 
+    // Check if user is logged in to personalize favorites
+    let userFavorites = [];
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+    
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET || process.env.PRV_TOKEN);
+        const userId = decoded._id || decoded.id;
+        if (userId) {
+          const favorites = await Favorite.find({ myId: userId });
+          userFavorites = favorites.map(f => f.favoriteService.toString());
+        }
+      } catch (err) {
+        // Ignore token errors for public list
+      }
+    }
+
     const services = await Service.find(filter)
       .populate("cetagory", "name")
       .populate("subCetagory", "name")
@@ -126,6 +146,13 @@ export const allServices = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(limitNum)
       .skip(skip);
+
+    // Add isFavourite property to each service
+    const servicesWithFavorites = services.map(service => {
+      const serviceObj = service.toObject();
+      serviceObj.isFavourite = userFavorites.includes(service._id.toString());
+      return serviceObj;
+    });
 
     return res.status(200).json({
       success: true,
@@ -136,7 +163,7 @@ export const allServices = async (req, res) => {
         limit: limitNum,
         totalPages,
       },
-      data: services,
+      data: servicesWithFavorites,
     });
   } catch (error) {
     return res.status(500).json({
@@ -166,9 +193,30 @@ export const singleService = async (req, res) => {
       });
     }
 
+    // Check for personalized favorite status
+    let isFavourite = false;
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+    
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET || process.env.PRV_TOKEN);
+        const userId = decoded._id || decoded.id;
+        if (userId) {
+          const favorite = await Favorite.findOne({ myId: userId, favoriteService: id });
+          isFavourite = !!favorite;
+        }
+      } catch (err) {
+        // Ignore token errors
+      }
+    }
+
+    const serviceObj = service.toObject();
+    serviceObj.isFavourite = isFavourite;
+
     return res.status(200).json({
       success: true,
-      data: service,
+      data: serviceObj,
     });
   } catch (error) {
     return res.status(500).json({
@@ -282,6 +330,141 @@ export const deleteService = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error deleting service",
+      error: error.message,
+    });
+  }
+};
+
+export const createFavorite = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const { serviceId } = req.params;
+
+    if (!userId || !serviceId) {
+      return res.status(400).json({
+        success: false,
+        message: "User authentication required and service ID parameter is required",
+      });
+    }
+
+    // Check if the service exists
+    const service = await Service.findOne({ _id: serviceId, isDeleted: false });
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found",
+      });
+    }
+
+    // Check if already favorited
+    const existingFavorite = await Favorite.findOne({
+      myId: userId,
+      favoriteService: serviceId,
+    });
+
+    if (existingFavorite) {
+      // Remove from favorites
+      await Favorite.deleteOne({ _id: existingFavorite._id });
+      return res.status(200).json({
+        success: true,
+        message: "Service removed from favorites successfully",
+        isFavorite: false,
+      });
+    } else {
+      // Add to favorites
+      const favorite = new Favorite({
+        myId: userId,
+        favoriteService: serviceId,
+      });
+
+      await favorite.save();
+      return res.status(201).json({
+        success: true,
+        message: "Service added to favorites successfully",
+        isFavorite: true,
+        data: favorite,
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error toggling favorite",
+      error: error.message,
+    });
+  }
+};
+
+export const getFavorites = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
+    const favorites = await Favorite.find({ myId: userId })
+      .populate({
+        path: "favoriteService",
+        populate: [
+          { path: "cetagory", select: "name" },
+          { path: "subCetagory", select: "name" },
+          { path: "badges" }
+        ]
+      })
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Favorites retrieved successfully",
+      data: favorites,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching favorites",
+      error: error.message,
+    });
+  }
+};
+
+export const removeFromFavorites = async (req, res) => {
+  try {
+    const { id } = req.params; 
+    const userId = req.user?._id || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
+    let favorite = await Favorite.findOne({ _id: id, myId: userId });
+    
+    if (!favorite) {
+      favorite = await Favorite.findOne({ favoriteService: id, myId: userId });
+    }
+
+    if (!favorite) {
+      return res.status(404).json({
+        success: false,
+        message: "Favorite not found",
+      });
+    }
+
+    await Favorite.findByIdAndDelete(favorite._id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Service removed from favorites successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error removing from favorites",
       error: error.message,
     });
   }

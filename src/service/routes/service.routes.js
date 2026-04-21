@@ -5,8 +5,13 @@ import {
   singleService,
   updateService,
   deleteService,
+  getFavorites,
+  removeFromFavorites,
+  createFavorite,
 } from "../controller/service.controller.js";
 import superAdminMiddleware from "../../helper/middlewares/superAdminMiddleware.js";
+import { authenticateToken } from "../../helper/middlewares/auth.middleware.js";
+import userMiddleware from "../../helper/middlewares/user.middleware.js";
 import {
   upload,
   errorCheck,
@@ -19,7 +24,11 @@ const router = express.Router();
 router.post(
   "/create-service",
   superAdminMiddleware,
-  upload.fields([{ name: "image", maxCount: 1 }, { name: "photoOfVisitor", maxCount: 10 }, { name: "hotelMenu", maxCount: 10 }]),
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "photoOfVisitor", maxCount: 10 },
+    { name: "hotelMenu", maxCount: 10 },
+  ]),
   errorCheck,
   createService,
 );
@@ -31,19 +40,20 @@ router.post(
 // ?offerType=limited	Returns services with a specific offer type.
 router.get("/all-services", allServices);
 
-
-
 //localhost:3000/api/v1/service/single-service/:id
 // Get a single service
 router.get("/single-service/:id", singleService);
-
 
 //localhost:3000/api/v1/service/update-service/:id
 // Update a service
 router.patch(
   "/update-service/:id",
   superAdminMiddleware,
-  upload.fields([{ name: "image", maxCount: 1 }, { name: "photoOfVisitor", maxCount: 10 }, { name: "hotelMenu", maxCount: 10 }]),
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "photoOfVisitor", maxCount: 10 },
+    { name: "hotelMenu", maxCount: 10 },
+  ]),
   errorCheck,
   updateService,
 );
@@ -51,5 +61,21 @@ router.patch(
 //localhost:3000/api/v1/service/delete-service/:id
 // Soft delete a service
 router.delete("/delete-service/:id", superAdminMiddleware, deleteService);
+
+//localhost:3000/api/v1/service/add-to-favorites/:id
+// Add a service to favorites
+router.post("/add-to-favorites/:serviceId", userMiddleware, createFavorite);
+
+//localhost:3000/api/v1/service/get-favorites
+// Get all favorites
+router.get("/get-favorites", userMiddleware, getFavorites);
+
+//localhost:3000/api/v1/service/remove-from-favorites/:id
+// Remove a service from favorites
+router.delete(
+  "/remove-from-favorites/:id",
+  userMiddleware,
+  removeFromFavorites,
+);
 
 export default router;
