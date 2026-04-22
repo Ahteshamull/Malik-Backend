@@ -3,8 +3,11 @@ import User from "../../auth/schema/auth.modal.js";
 
 const userMiddleware = async (req, res, next) => {
   try {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
+    const token =
+      req.cookies?.token ||
+      (req.headers.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.split(" ")[1]
+        : null);
 
     if (!token) {
       return res.status(401).json({

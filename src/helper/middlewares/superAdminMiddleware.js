@@ -2,7 +2,11 @@ import jwt from "jsonwebtoken";
 import Admin from "../../admin/schema/admin.modal.js";
 
 const superAdminMiddleware = async (req, res, next) => {
-  let { token } = req.cookies;
+  let token =
+    req.cookies.token ||
+    (req.headers.authorization?.startsWith("Bearer ")
+      ? req.headers.authorization.split(" ")[1]
+      : null);
 
   if (token) {
     try {

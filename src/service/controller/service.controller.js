@@ -123,8 +123,12 @@ export const allServices = async (req, res) => {
 
     // Check if user is logged in to personalize favorites
     let userFavorites = [];
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
+    const token =
+      req.cookies?.accessToken ||
+      req.cookies?.token ||
+      (req.headers.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.split(" ")[1]
+        : null);
     
     if (token) {
       try {
@@ -195,8 +199,12 @@ export const singleService = async (req, res) => {
 
     // Check for personalized favorite status
     let isFavourite = false;
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
+    const token =
+      req.cookies?.accessToken ||
+      req.cookies?.token ||
+      (req.headers.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.split(" ")[1]
+        : null);
     
     if (token) {
       try {

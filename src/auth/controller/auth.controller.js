@@ -462,16 +462,21 @@ export const verifyOtp = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   const { newPassword, confirmPassword } = req.body;
-  const authHeader = req.headers.authorization;
+  const token =
+    req.cookies?.accessToken ||
+    req.cookies?.token ||
+    (req.headers.authorization?.startsWith("Bearer ")
+      ? req.headers.authorization.split(" ")[1]
+      : null);
 
   // 1️⃣ Token check
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!token) {
     return res
       .status(401)
       .json({ error: true, message: "Reset token required" });
   }
 
-  const resetToken = authHeader.split(" ")[1];
+  const resetToken = token;
 
   // 2️⃣ Password validation
   if (!newPassword || !confirmPassword) {
@@ -679,15 +684,18 @@ export const refreshAccessToken = async (req, res) => {
 
 export const changePassword = async (req, res) => {
   const { currentPassword, newPassword, confirmPassword } = req.body;
-  const authHeader = req.headers.authorization;
+  const token =
+    req.cookies?.accessToken ||
+    req.cookies?.token ||
+    (req.headers.authorization?.startsWith("Bearer ")
+      ? req.headers.authorization.split(" ")[1]
+      : null);
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!token) {
     return res
       .status(401)
       .json({ error: true, message: "Authentication required" });
   }
-
-  const token = authHeader.split(" ")[1];
 
   let decoded;
   try {
@@ -745,15 +753,18 @@ export const changePassword = async (req, res) => {
 };
 
 export const currentUserLogin = async (req, res) => {
-  const authHeader = req.headers.authorization;
+  const token =
+    req.cookies?.accessToken ||
+    req.cookies?.token ||
+    (req.headers.authorization?.startsWith("Bearer ")
+      ? req.headers.authorization.split(" ")[1]
+      : null);
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!token) {
     return res
       .status(401)
       .json({ error: true, message: "Authentication required" });
   }
-
-  const token = authHeader.split(" ")[1];
 
   try {
     const decoded = jwt.verify(

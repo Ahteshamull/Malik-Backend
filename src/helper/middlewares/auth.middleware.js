@@ -3,8 +3,11 @@ import Admin from "../../admin/schema/admin.modal.js";
 
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const token =
+    req.cookies?.token ||
+    (req.headers.authorization?.startsWith("Bearer ")
+      ? req.headers.authorization.split(" ")[1]
+      : null);
 
   if (!token) {
     return res.status(401).json({
