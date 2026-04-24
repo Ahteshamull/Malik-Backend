@@ -77,3 +77,79 @@ export const createReport = async (req, res) => {
     });
   }
 };
+
+export const getallReports = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const { searchTerm } = req.query;
+
+    const filter = {};
+    if (searchTerm) {
+      filter.issueTitle = { $regex: searchTerm, $options: "i" };
+    }
+
+    const reports = await Report.find(filter)
+      .populate("userId", "userName email role")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Report.countDocuments(filter);
+    const pendingReports = await Report.countDocuments({
+      status: "pending",
+      ...filter,
+    });
+    const completedReports = await Report.countDocuments({
+      status: "completed",
+      ...filter,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Reports fetched successfully",
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+        pendingReports,
+        completedReports,
+      },
+      data: reports,
+    });
+  } catch (error) {
+    console.error("Get all reports error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+export const deleteReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const report = await Report.findByIdAndDelete(id);
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "Report not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Report deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete report error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};

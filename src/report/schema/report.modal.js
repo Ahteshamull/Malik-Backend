@@ -24,6 +24,11 @@ const reportSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  status: {
+    type: String,
+    enum: ["pending", "completed"],
+    default: "pending",
+  },
   createdAt: {
     type: Date,
     default: Date.now,
