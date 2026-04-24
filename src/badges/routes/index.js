@@ -10,3 +10,4 @@ const router = express.Router();
 router.use("/badge", badge);
 
 export default router;
+    

@@ -42,9 +42,15 @@ export const allSubCetagory = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const { searchTerm } = req.query;
 
-    const total = await SubCetagory.countDocuments();
-    const subCetagory = await SubCetagory.find()
+    const filter = {};
+    if (searchTerm) {
+      filter.name = { $regex: searchTerm, $options: "i" };
+    }
+
+    const total = await SubCetagory.countDocuments(filter);
+    const subCetagory = await SubCetagory.find(filter)
       .populate("cetagory")
       .sort({ createdAt: -1 })
       .skip(skip)

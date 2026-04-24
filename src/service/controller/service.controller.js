@@ -62,6 +62,7 @@ export const allServices = async (req, res) => {
     const {
       page = 1,
       limit = 10,
+      searchTerm,
       search,
       type,
       name,
@@ -80,8 +81,9 @@ export const allServices = async (req, res) => {
     const filter = { isDeleted: false };
 
     // Handle search by service name (Partial match, case-insensitive)
-    if (search) {
-      filter.name = { $regex: search, $options: "i" };
+    const searchVal = searchTerm || search;
+    if (searchVal) {
+      filter.name = { $regex: searchVal, $options: "i" };
     }
 
     // Handle offer filtering

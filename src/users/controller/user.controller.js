@@ -7,11 +7,22 @@ export const allUser = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const { searchTerm } = req.query;
 
-    const totalUsers = await userModel.countDocuments();
+    const filter = {};
+    if (searchTerm) {
+      filter.$or = [
+        { userName: { $regex: searchTerm, $options: "i" } },
+        { email: { $regex: searchTerm, $options: "i" } },
+        { phone: { $regex: searchTerm, $options: "i" } },
+        { country: { $regex: searchTerm, $options: "i" } },
+      ];
+    }
+
+    const totalUsers = await userModel.countDocuments(filter);
 
     const users = await userModel
-      .find()
+      .find(filter)
       .select("-password -confirmPassword")
       .skip(skip)
       .limit(limit)
@@ -80,7 +91,8 @@ export const singleUser = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const userId = req.user?.id || req.user?.userId || req.user?._id || req.user?.sub;
+    const userId =
+      req.user?.id || req.user?.userId || req.user?._id || req.user?.sub;
 
     if (!userId) {
       return res.status(401).json({
@@ -89,14 +101,7 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    const {
-      userName,
-      email,
-      phone,
-      dateOfBirth,
-      country,
-      image,
-    } = req.body;
+    const { userName, email, phone, dateOfBirth, country, image } = req.body;
 
     const existingUser = await userModel.findById(userId);
 
@@ -112,18 +117,31 @@ export const updateProfile = async (req, res) => {
 
     // Check mapping since the UI uses Full Name -> userName
     if (userName !== undefined && userName.trim() !== existingUser.userName) {
-      const duplicate = await userModel.findOne({ userName: userName.trim(), _id: { $ne: userId } });
+      const duplicate = await userModel.findOne({
+        userName: userName.trim(),
+        _id: { $ne: userId },
+      });
       if (duplicate) {
-        return res.status(409).json({ success: false, message: "This Name is already taken." });
+        return res
+          .status(409)
+          .json({ success: false, message: "This Name is already taken." });
       }
       updateData.userName = userName.trim();
       hasChanges = true;
     }
 
-    if (email !== undefined && email.toLowerCase().trim() !== existingUser.email) {
-      const duplicate = await userModel.findOne({ email: email.toLowerCase().trim(), _id: { $ne: userId } });
+    if (
+      email !== undefined &&
+      email.toLowerCase().trim() !== existingUser.email
+    ) {
+      const duplicate = await userModel.findOne({
+        email: email.toLowerCase().trim(),
+        _id: { $ne: userId },
+      });
       if (duplicate) {
-        return res.status(409).json({ success: false, message: "This Email is already in use." });
+        return res
+          .status(409)
+          .json({ success: false, message: "This Email is already in use." });
       }
       updateData.email = email.toLowerCase().trim();
       hasChanges = true;
@@ -144,8 +162,6 @@ export const updateProfile = async (req, res) => {
       hasChanges = true;
     }
 
-
-
     // Image upload handling
     if (req.file) {
       updateData.image = `/uploads/${req.file.filename}`;
@@ -163,11 +179,13 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    const updatedUser = await userModel.findByIdAndUpdate(
-      userId,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    ).select("-password -confirmPassword -refreshToken");
+    const updatedUser = await userModel
+      .findByIdAndUpdate(
+        userId,
+        { $set: updateData },
+        { new: true, runValidators: true },
+      )
+      .select("-password -confirmPassword -refreshToken");
 
     return res.status(200).json({
       success: true,
@@ -395,5 +413,3 @@ export const deleteUser = async (req, res) => {
     });
   }
 };
-
-

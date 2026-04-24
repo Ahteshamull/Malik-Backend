@@ -352,10 +352,20 @@ const allAdmin = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const { searchTerm } = req.query;
 
     // Get current admin ID from request to exclude it from the list
     const currentAdminId = req.user?._id || req.user?.id;
     const filter = { _id: { $ne: currentAdminId } };
+
+    if (searchTerm) {
+      filter.$or = [
+        { name: { $regex: searchTerm, $options: "i" } },
+        { email: { $regex: searchTerm, $options: "i" } },
+        { phone: { $regex: searchTerm, $options: "i" } },
+        { role: { $regex: searchTerm, $options: "i" } },
+      ];
+    }
 
     // Get total count for pagination metadata based on filter
     const total = await Admin.countDocuments(filter);
