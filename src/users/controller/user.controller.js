@@ -101,7 +101,17 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    const { userName, email, phone, dateOfBirth, country, image } = req.body;
+    const {
+      userName,
+      email,
+      phone,
+      dateOfBirth,
+      country,
+      image,
+      address,
+      latitude,
+      longitude,
+    } = req.body;
 
     const existingUser = await userModel.findById(userId);
 
@@ -159,6 +169,21 @@ export const updateProfile = async (req, res) => {
 
     if (country !== undefined && country !== existingUser.country) {
       updateData.country = country;
+      hasChanges = true;
+    }
+    
+    if (address !== undefined && address !== existingUser.address) {
+      updateData.address = address;
+      hasChanges = true;
+    }
+
+    if (latitude !== undefined && latitude !== existingUser.latitude) {
+      updateData.latitude = latitude;
+      hasChanges = true;
+    }
+
+    if (longitude !== undefined && longitude !== existingUser.longitude) {
+      updateData.longitude = longitude;
       hasChanges = true;
     }
 

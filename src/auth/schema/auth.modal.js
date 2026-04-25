@@ -44,6 +44,15 @@ const userSchema = new Schema(
     country: {
       type: String,
     },
+    address: {
+      type: String,
+    },
+    latitude: {
+      type: String,
+    },
+    longitude: {
+      type: String,
+    },
     experience: {
       type: String,
     },
