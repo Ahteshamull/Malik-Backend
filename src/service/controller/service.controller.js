@@ -497,3 +497,41 @@ export const removeFromFavorites = async (req, res) => {
     });
   }
 };
+
+export const weeklyFeaturedServices = async (req, res) => {
+  try {
+    const categories = await Cetagory.find();
+    let allFeaturedServices = [];
+
+    for (const category of categories) {
+      if (allFeaturedServices.length >= 6) break;
+
+      const services = await Service.find({
+        cetagory: category._id,
+        isDeleted: false,
+      })
+        .populate("cetagory", "name")
+        .populate("subCetagory", "name")
+        .populate("badges")
+        .sort({ updatedAt: -1 })
+        .limit(2);
+
+      allFeaturedServices = [...allFeaturedServices, ...services];
+    }
+
+    // Limit to exactly 6 just in case more were added
+    const data = allFeaturedServices.slice(0, 6);
+
+    return res.status(200).json({
+      success: true,
+      message: "Weekly featured services retrieved successfully",
+      data,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching weekly featured services",
+      error: error.message,
+    });
+  }
+};

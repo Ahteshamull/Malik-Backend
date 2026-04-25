@@ -101,7 +101,8 @@ export const autoAssignBadges = async (serviceId) => {
 
     const badges = await Badge.find({ isDeleted: false });
 
-    const earnedBadges = [];
+    // Group by title and keep only the "best" qualified badge for each title
+    const bestBadgesByTitle = {};
 
     for (const badge of badges) {
       const cond = badge.automatedConditions;
@@ -110,15 +111,46 @@ export const autoAssignBadges = async (serviceId) => {
       let passes = true;
 
       // Condition checks
-      if (cond.minRating > 0 && service.averageRating < cond.minRating) passes = false;
-      if (cond.minReviews > 0 && service.totalReviews < cond.minReviews) passes = false;
-      if (cond.maxResponseTimeHours !== null && service.responseTimeHours > cond.maxResponseTimeHours) passes = false;
+      if (cond.minRating > 0 && service.averageRating < cond.minRating)
+        passes = false;
+      if (cond.minReviews > 0 && service.totalReviews < cond.minReviews)
+        passes = false;
+      if (
+        cond.maxResponseTimeHours !== null &&
+        service.responseTimeHours > cond.maxResponseTimeHours
+      )
+        passes = false;
 
-      // If it passes all rules configured, it earns the badge
+      // If it passes all rules configured, it qualifies
       if (passes) {
-        earnedBadges.push(badge._id);
+        const title = badge.title;
+        if (!bestBadgesByTitle[title]) {
+          bestBadgesByTitle[title] = badge;
+        } else {
+          // Compare difficulty to keep the "highest" level badge of this title
+          const existing = bestBadgesByTitle[title].automatedConditions;
+
+          // A badge is "better" if it has higher rating requirements, 
+          // or same rating but higher review requirements,
+          // or same rating/reviews but stricter response time.
+          const isBetter =
+            cond.minRating > existing.minRating ||
+            (cond.minRating === existing.minRating &&
+              cond.minReviews > existing.minReviews) ||
+            (cond.minRating === existing.minRating &&
+              cond.minReviews === existing.minReviews &&
+              cond.maxResponseTimeHours !== null &&
+              (existing.maxResponseTimeHours === null ||
+                cond.maxResponseTimeHours < existing.maxResponseTimeHours));
+
+          if (isBetter) {
+            bestBadgesByTitle[title] = badge;
+          }
+        }
       }
     }
+
+    const earnedBadges = Object.values(bestBadgesByTitle).map((b) => b._id);
 
     // Update service's badges arrays with only the earned ones
     await Service.findByIdAndUpdate(serviceId, { badges: earnedBadges });
