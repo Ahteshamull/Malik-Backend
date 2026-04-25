@@ -1,5 +1,6 @@
 import SubCetagory from "../schema/cetagory.modal.js";
 import Cetagory from "../../cetagory/schema/cetagory.modal.js";
+import mongoose from "mongoose";
 
 import fs from "fs";
 import path from "path";
@@ -42,11 +43,28 @@ export const allSubCetagory = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const { searchTerm } = req.query;
-
+    const { searchTerm, cetagory, category } = req.query;
+    
     const filter = {};
+    
+    // Handle search term
     if (searchTerm) {
       filter.name = { $regex: searchTerm, $options: "i" };
+    }
+
+    // Handle category filtering by name or ID
+    const targetCategory = cetagory || category;
+    if (targetCategory) {
+      // Check if it's a valid ObjectId first
+      if (mongoose.Types.ObjectId.isValid(targetCategory)) {
+        filter.cetagory = targetCategory;
+      } else {
+        // Find category by name (case-insensitive)
+        const cat = await Cetagory.findOne({
+          name: { $regex: new RegExp(`^${targetCategory}$`, "i") },
+        });
+        filter.cetagory = cat ? cat._id : "000000000000000000000000";
+      }
     }
 
     const total = await SubCetagory.countDocuments(filter);

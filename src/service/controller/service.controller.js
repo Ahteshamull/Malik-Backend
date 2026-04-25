@@ -25,9 +25,16 @@ export const createService = async (req, res) => {
 
     // Handle image upload if exists
     if (req.files) {
-      if (req.files.image) serviceData.image = `/uploads/${req.files.image[0].filename}`;
-      if (req.files.photoOfVisitor) serviceData.photoOfVisitor = req.files.photoOfVisitor.map(file => `/uploads/${file.filename}`);
-      if (req.files.hotelMenu) serviceData.hotelMenu = req.files.hotelMenu.map(file => `/uploads/${file.filename}`);
+      if (req.files.image)
+        serviceData.image = `/uploads/${req.files.image[0].filename}`;
+      if (req.files.photoOfVisitor)
+        serviceData.photoOfVisitor = req.files.photoOfVisitor.map(
+          (file) => `/uploads/${file.filename}`,
+        );
+      if (req.files.hotelMenu)
+        serviceData.hotelMenu = req.files.hotelMenu.map(
+          (file) => `/uploads/${file.filename}`,
+        );
     }
 
     const service = await Service.create(serviceData);
@@ -55,7 +62,6 @@ export const createService = async (req, res) => {
     });
   }
 };
-
 
 export const allServices = async (req, res) => {
   try {
@@ -131,14 +137,17 @@ export const allServices = async (req, res) => {
       (req.headers.authorization?.startsWith("Bearer ")
         ? req.headers.authorization.split(" ")[1]
         : null);
-    
+
     if (token) {
       try {
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET || process.env.PRV_TOKEN);
+        const decoded = jwt.verify(
+          token,
+          process.env.ACCESS_TOKEN_SECRET || process.env.PRV_TOKEN,
+        );
         const userId = decoded._id || decoded.id;
         if (userId) {
           const favorites = await Favorite.find({ myId: userId });
-          userFavorites = favorites.map(f => f.favoriteService.toString());
+          userFavorites = favorites.map((f) => f.favoriteService.toString());
         }
       } catch (err) {
         // Ignore token errors for public list
@@ -154,7 +163,7 @@ export const allServices = async (req, res) => {
       .skip(skip);
 
     // Add isFavourite property to each service
-    const servicesWithFavorites = services.map(service => {
+    const servicesWithFavorites = services.map((service) => {
       const serviceObj = service.toObject();
       serviceObj.isFavourite = userFavorites.includes(service._id.toString());
       return serviceObj;
@@ -207,13 +216,19 @@ export const singleService = async (req, res) => {
       (req.headers.authorization?.startsWith("Bearer ")
         ? req.headers.authorization.split(" ")[1]
         : null);
-    
+
     if (token) {
       try {
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET || process.env.PRV_TOKEN);
+        const decoded = jwt.verify(
+          token,
+          process.env.ACCESS_TOKEN_SECRET || process.env.PRV_TOKEN,
+        );
         const userId = decoded._id || decoded.id;
         if (userId) {
-          const favorite = await Favorite.findOne({ myId: userId, favoriteService: id });
+          const favorite = await Favorite.findOne({
+            myId: userId,
+            favoriteService: id,
+          });
           isFavourite = !!favorite;
         }
       } catch (err) {
@@ -255,23 +270,25 @@ export const updateService = async (req, res) => {
     // Handle file updates and old file deletion
     if (req.files) {
       const existingService = await Service.findById(id);
-      
+
       const fileFieldsArray = ["photoOfVisitor", "hotelMenu"];
-      
+
       // Update arrays of files
       fileFieldsArray.forEach((field) => {
         if (req.files[field]) {
           // Delete old files if they exist
           if (existingService && Array.isArray(existingService[field])) {
             existingService[field].forEach((oldFileName) => {
-              if(oldFileName) {
+              if (oldFileName) {
                 const oldFilePath = path.join(process.cwd(), oldFileName);
                 if (fs.existsSync(oldFilePath)) fs.unlinkSync(oldFilePath);
               }
             });
           }
           // Set new file paths array
-          updateData[field] = req.files[field].map(file => `/uploads/${file.filename}`);
+          updateData[field] = req.files[field].map(
+            (file) => `/uploads/${file.filename}`,
+          );
         }
       });
 
@@ -299,7 +316,7 @@ export const updateService = async (req, res) => {
 
     // Trigger automatic badge assignment evaluation when service is updated
     await autoAssignBadges(service._id);
-    
+
     // Fetch again to get fully populated badges
     const updatedService = await Service.findById(service._id)
       .populate("cetagory")
@@ -353,7 +370,8 @@ export const createFavorite = async (req, res) => {
     if (!userId || !serviceId) {
       return res.status(400).json({
         success: false,
-        message: "User authentication required and service ID parameter is required",
+        message:
+          "User authentication required and service ID parameter is required",
       });
     }
 
@@ -421,8 +439,8 @@ export const getFavorites = async (req, res) => {
         populate: [
           { path: "cetagory", select: "name" },
           { path: "subCetagory", select: "name" },
-          { path: "badges" }
-        ]
+          { path: "badges" },
+        ],
       })
       .sort({ createdAt: -1 });
 
@@ -442,7 +460,7 @@ export const getFavorites = async (req, res) => {
 
 export const removeFromFavorites = async (req, res) => {
   try {
-    const { id } = req.params; 
+    const { id } = req.params;
     const userId = req.user?._id || req.user?.id;
 
     if (!userId) {
@@ -453,7 +471,7 @@ export const removeFromFavorites = async (req, res) => {
     }
 
     let favorite = await Favorite.findOne({ _id: id, myId: userId });
-    
+
     if (!favorite) {
       favorite = await Favorite.findOne({ favoriteService: id, myId: userId });
     }

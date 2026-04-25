@@ -50,19 +50,25 @@ const serviceSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    offerType:{
-     type: String,
+    offerType: {
+      type: String,
     },
-    photoOfVisitor: [{
-      type: String,
-    }],
-    hotelMenu: [{
-      type: String,
-    }],
-    badges: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Badge",
-    }],
+    photoOfVisitor: [
+      {
+        type: String,
+      },
+    ],
+    hotelMenu: [
+      {
+        type: String,
+      },
+    ],
+    badges: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Badge",
+      },
+    ],
     date: {
       type: String,
     },
@@ -79,6 +85,11 @@ const serviceSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    reviews: [
+      {
+        type: String,
+      },
+    ],
     // isFavourite: {
     //   type: Boolean,
     //   default: false,
