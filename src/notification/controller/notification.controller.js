@@ -110,7 +110,7 @@ const markNotification = async (req, res) => {
     const notification = await Notification.findByIdAndUpdate(
       id,
       { isRead },
-      { new: true }
+      { new: true },
     );
 
     if (!notification) {
@@ -151,7 +151,7 @@ const markAllNotifications = async (req, res) => {
 // Internal helper function for creating collaboration notifications
 const createCollaborationNotification = async (
   collaborationData,
-  creatorRole
+  creatorRole,
 ) => {
   try {
     const { selectInfluencerOrHost, userId, _id } = collaborationData;
@@ -193,11 +193,9 @@ const createCollaborationNotification = async (
 
     return savedNotification;
   } catch (error) {
-    
     throw error;
   }
 };
-
 
 export {
   listNotifications,
