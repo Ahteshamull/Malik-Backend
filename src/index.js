@@ -10,6 +10,7 @@ import router from "./api/index.js";
 import cors from "cors";
 
 
+
 const app = express();
 
 const server = createServer(app);
@@ -35,13 +36,15 @@ app.use("/uploads", express.static("uploads"));
 
 app.use(router);
 
+import { getStatusPage } from "./views/statusPage.js";
+import { getSystemStats } from "./helper/systemStats.js";
+
 app.get("/", (req, res) => {
-  res.json({
-    error: false,
-    success: true,
-    message: `Welcome to malik . The backend Server is running on port ${PORT}`,
-    version: "v1",
-  });
+  res.send(getStatusPage());
+});
+
+app.get("/status-data", (req, res) => {
+  res.json(getSystemStats());
 });
 
 dbConnect();
