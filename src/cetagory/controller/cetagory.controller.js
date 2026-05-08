@@ -58,8 +58,8 @@ export const updateCetagory = async (req, res) => {
         if (!cetagory) {
             return res.status(404).json({ success: false, message: "Cetagory not found" });
         }
-    const { description } = req.body;
-    const updateData = { description };
+    const { description, name } = req.body;
+    const updateData = { description, name };
 
     if (req.file) {
       const newImagePath = `/uploads/${req.file.filename}`;
