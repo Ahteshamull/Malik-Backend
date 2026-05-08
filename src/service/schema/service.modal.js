@@ -47,11 +47,8 @@ const serviceSchema = new mongoose.Schema(
       type: String,
     },
     offer: {
-      type: Boolean,
-      default: false,
-    },
-    offerType: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Offer",
     },
     photoOfVisitor: [
       {

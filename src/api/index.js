@@ -15,7 +15,7 @@ import cetagory from "../cetagory/routes/index.js";
 import subCetagory from "../subCetagory/routes/index.js";
 import service from "../service/routes/index.js";
 import badge from "../badges/routes/index.js";
-
+import offer from "../offer/routes/index.js";
 
 
 const router = express.Router();
@@ -37,6 +37,7 @@ router.use(baseurl, cetagory);
 router.use(baseurl, subCetagory);
 router.use(baseurl, service);
 router.use(baseurl, badge);
+router.use(baseurl, offer); 
 
 // Update code
 router.use(baseurl, (req, res) => {
