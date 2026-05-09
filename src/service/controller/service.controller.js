@@ -34,6 +34,22 @@ export const createService = async (req, res) => {
       serviceData.subCetagory = serviceData.subCategory;
     }
 
+    // Parse reviews if sent as a string (common in form-data)
+    if (typeof serviceData.reviews === "string") {
+      try {
+        serviceData.reviews = JSON.parse(serviceData.reviews);
+      } catch (e) {
+        console.error("Error parsing reviews:", e);
+      }
+    }
+
+    // Convert numeric fields from strings if necessary
+    ["averageRating", "totalReviews", "responseTimeHours"].forEach((field) => {
+      if (typeof serviceData[field] === "string") {
+        serviceData[field] = Number(serviceData[field]);
+      }
+    });
+
     // Handle image upload if exists
     if (req.files) {
       if (req.files.image)
@@ -305,6 +321,22 @@ export const updateService = async (req, res) => {
     if (updateData.subCategory && !updateData.subCetagory) {
       updateData.subCetagory = updateData.subCategory;
     }
+
+    // Parse reviews if sent as a string
+    if (typeof updateData.reviews === "string") {
+      try {
+        updateData.reviews = JSON.parse(updateData.reviews);
+      } catch (e) {
+        console.error("Error parsing reviews:", e);
+      }
+    }
+
+    // Convert numeric fields from strings if necessary
+    ["averageRating", "totalReviews", "responseTimeHours"].forEach((field) => {
+      if (typeof updateData[field] === "string") {
+        updateData[field] = Number(updateData[field]);
+      }
+    });
 
     // Handle file updates and old file deletion
     if (req.files) {
