@@ -12,6 +12,8 @@ import {
   errorCheck,
 } from "../../helper/middlewares/imageControlMiddleware.js";
 
+import { cacheMiddleware } from "../../helper/middlewares/cache.middleware.js";
+
 const router = Router();
 //localhost:3000/api/v1/cetagory/create-cetagory
 router.post(
@@ -22,9 +24,9 @@ router.post(
   createCetagory,
 );
 //localhost:3000/api/v1/cetagory/all-cetagory
-router.get("/all-cetagory", allCetagory);
+router.get("/all-cetagory", cacheMiddleware(3600), allCetagory);
 //localhost:3000/api/v1/cetagory/single-cetagory/:id
-router.get("/single-cetagory/:id", singleCetagory);
+router.get("/single-cetagory/:id", cacheMiddleware(3600), singleCetagory);
 //localhost:3000/api/v1/cetagory/update-cetagory/:id
 router.patch(
   "/update-cetagory/:id",
@@ -37,3 +39,4 @@ router.patch(
 router.delete("/delete-cetagory/:id", superAdminMiddleware, deleteCetagory);
 
 export default router;
+

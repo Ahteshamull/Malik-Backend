@@ -8,6 +8,8 @@ import Cetagory from "../../cetagory/schema/cetagory.modal.js";
 import SubCetagory from "../../subCetagory/schema/cetagory.modal.js";
 import { autoAssignBadges } from "../../badges/controller/badge.controller.js";
 import Favorite from "../schema/favorite.modal.js";
+import { delCacheByPrefix } from "../../helper/cache.js";
+
 
 export const createService = async (req, res) => {
   try {
@@ -90,11 +92,16 @@ export const createService = async (req, res) => {
     // Populate offer
     await service.populate("offer");
 
+    // Invalidate all service cache
+    const baseUrl = process.env.BASE_URL || "/api/v1";
+    delCacheByPrefix(`${baseUrl}/service`);
+
     return res.status(201).json({
       success: true,
       message: "Service created successfully",
       data: service,
     });
+
   } catch (error) {
     console.error("Error creating service:", error);
     return res.status(500).json({
@@ -395,11 +402,16 @@ export const updateService = async (req, res) => {
       .populate("badges")
       .populate("offer");
 
+    // Invalidate all service cache
+    const baseUrl = process.env.BASE_URL || "/api/v1";
+    delCacheByPrefix(`${baseUrl}/service`);
+
     return res.status(200).json({
       success: true,
       message: "Service updated successfully",
       data: updatedService,
     });
+
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -421,10 +433,15 @@ export const deleteService = async (req, res) => {
       });
     }
 
+    // Invalidate all service cache
+    const baseUrl = process.env.BASE_URL || "/api/v1";
+    delCacheByPrefix(`${baseUrl}/service`);
+
     return res.status(200).json({
       success: true,
       message: "Service deleted successfully",
     });
+
   } catch (error) {
     return res.status(500).json({
       success: false,

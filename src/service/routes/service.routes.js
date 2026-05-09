@@ -18,6 +18,8 @@ import {
   errorCheck,
 } from "../../helper/middlewares/imageControlMiddleware.js";
 
+import { cacheMiddleware } from "../../helper/middlewares/cache.middleware.js";
+
 const router = express.Router();
 
 //localhost:3000/api/v1/service/create-service
@@ -39,11 +41,11 @@ router.post(
 // ?cetagory=Resturant	Returns all services belonging to "Resturant" category.
 // ?offer=true&cetagory=Resturant	Returns services in "Resturant" category that have an offer.
 // ?offerType=limited	Returns services with a specific offer type.
-router.get("/all-services", allServices);
+router.get("/all-services", cacheMiddleware(3600), allServices);
 
 //localhost:3000/api/v1/service/single-service/:id
 // Get a single service
-router.get("/single-service/:id", singleService);
+router.get("/single-service/:id", cacheMiddleware(3600), singleService);
 
 //localhost:3000/api/v1/service/update-service/:id
 // Update a service
@@ -69,7 +71,8 @@ router.post("/add-to-favorites/:serviceId", userMiddleware, createFavorite);
 
 //localhost:3000/api/v1/service/get-favorites
 // Get all favorites
-router.get("/get-favorites", userMiddleware, getFavorites);
+router.get("/get-favorites", userMiddleware, cacheMiddleware(3600), getFavorites);
+
 
 //localhost:3000/api/v1/service/remove-from-favorites/:id
 // Remove a service from favorites
@@ -81,6 +84,7 @@ router.delete(
 
 //localhost:3000/api/v1/service/weekly-featured-services
 // Get weekly featured services
-router.get("/weekly-featured-services", weeklyFeaturedServices);
+router.get("/weekly-featured-services", cacheMiddleware(3600), weeklyFeaturedServices);
 
 export default router;
+

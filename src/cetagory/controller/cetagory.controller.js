@@ -1,13 +1,21 @@
 import Cetagory from "../schema/cetagory.modal.js";
 import fs from "fs";
 import path from "path";
+import { delCacheByPrefix } from "../../helper/cache.js";
+
 
 export const createCetagory = async (req, res) => {
     try {
         const { name, description } = req.body;
         const image = req.file ? `/uploads/${req.file.filename}` : null;
         const cetagory = await Cetagory.create({ name, description, image });
+        
+        // Invalidate all category cache
+        const baseUrl = process.env.BASE_URL || "/api/v1";
+        delCacheByPrefix(`${baseUrl}/cetagory`);
+
         res.status(201).json({ success: true, message: "Cetagory created successfully", data: cetagory });
+
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -74,12 +82,18 @@ export const updateCetagory = async (req, res) => {
       updateData.image = newImagePath;
     }
 
-    const updatedCetagory = await Cetagory.findByIdAndUpdate(
+      const updatedCetagory = await Cetagory.findByIdAndUpdate(
       req.params.id,
       { $set: updateData },
       { new: true },
     );
+
+        // Invalidate all category cache
+        const baseUrl = process.env.BASE_URL || "/api/v1";
+        delCacheByPrefix(`${baseUrl}/cetagory`);
+
         res.status(200).json({ success: true, message: "Cetagory updated successfully", data: updatedCetagory });
+
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -100,7 +114,12 @@ export const deleteCetagory = async (req, res) => {
             }
         }
 
+        // Invalidate all category cache
+        const baseUrl = process.env.BASE_URL || "/api/v1";
+        delCacheByPrefix(`${baseUrl}/cetagory`);
+
         res.status(200).json({ success: true, message: "Cetagory deleted successfully", data: cetagory });
+
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

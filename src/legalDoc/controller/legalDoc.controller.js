@@ -1,4 +1,6 @@
 import legalDocModel from "../schema/legalDoc.modal.js";
+import { delCache } from "../../helper/cache.js";
+
 
 export const createDoc = async (req, res) => {
   try {
@@ -17,7 +19,12 @@ export const createDoc = async (req, res) => {
       existingDoc.description = description;
       const updatedDoc = await existingDoc.save();
 
+      // Invalidate cache for this document
+      const baseUrl = process.env.BASE_URL || "/api/v1";
+      delCache(`${baseUrl}/legalDoc/get-doc/${content}`);
+
       return res.status(200).json({
+
         success: true,
         message: "Legal document updated successfully",
         data: updatedDoc,
@@ -30,7 +37,12 @@ export const createDoc = async (req, res) => {
 
       const savedDoc = await newDoc.save();
 
+      // Invalidate cache for this document
+      const baseUrl = process.env.BASE_URL || "/api/v1";
+      delCache(`${baseUrl}/legalDoc/get-doc/${content}`);
+
       return res.status(201).json({
+
         success: true,
         message: "Legal document created successfully",
         data: savedDoc,
