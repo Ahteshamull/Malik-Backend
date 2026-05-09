@@ -25,11 +25,13 @@ export const cacheMiddleware = (ttl) => {
 
     if (cachedResponse) {
       // console.log(`Cache hit for: ${key}`);
+      res.setHeader("X-Cache", "HIT");
       return res.status(200).json(cachedResponse);
     }
 
-
+    res.setHeader("X-Cache", "MISS");
     // console.log(`Cache miss for: ${key}`);
+
 
     // Intercept res.json to store the response in cache
     const originalJson = res.json;
