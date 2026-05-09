@@ -16,6 +16,7 @@ import subCetagory from "../subCetagory/routes/index.js";
 import service from "../service/routes/index.js";
 import badge from "../badges/routes/index.js";
 import offer from "../offer/routes/index.js";
+import notFound from "../helper/middlewares/notFound.js";
 
 
 const router = express.Router();
@@ -39,13 +40,7 @@ router.use(baseurl, service);
 router.use(baseurl, badge);
 router.use(baseurl, offer); 
 
-// Update code
-router.use(baseurl, (req, res) => {
-  return res.status(404).send({
-    success: false,
-    error: true,
-    message: "No matching API route found for this request",
-  });
-});
+// 404 handler
+router.use(baseurl, notFound);
 
 export default router;
