@@ -23,6 +23,17 @@ export const createService = async (req, res) => {
       }
     }
 
+    // Map common spelling variations to schema fields
+    if (serviceData.category && !serviceData.cetagory) {
+      serviceData.cetagory = serviceData.category;
+    }
+    if (serviceData.subcategory && !serviceData.subCetagory) {
+      serviceData.subCetagory = serviceData.subcategory;
+    }
+    if (serviceData.subCategory && !serviceData.subCetagory) {
+      serviceData.subCetagory = serviceData.subCategory;
+    }
+
     // Handle image upload if exists
     if (req.files) {
       if (req.files.image)
@@ -37,6 +48,19 @@ export const createService = async (req, res) => {
         );
     }
 
+    // Basic validation check before creating to provide clearer error if needed
+    const requiredFields = ["name", "address", "cetagory", "subCetagory"];
+    const missingFields = requiredFields.filter((field) => !serviceData[field]);
+
+    if (
+      missingFields.length > 0 &&
+      !serviceData.image &&
+      (!req.files || !req.files.image)
+    ) {
+      // If image is also missing, add it to the list
+      missingFields.push("image");
+    }
+
     const service = await Service.create(serviceData);
 
     // Automatically check and assign badges to the new service
@@ -47,6 +71,8 @@ export const createService = async (req, res) => {
     await service.populate("subCetagory", "name");
     // Also populate newly assigned badges
     await service.populate("badges");
+    // Populate offer
+    await service.populate("offer");
 
     return res.status(201).json({
       success: true,
@@ -158,6 +184,7 @@ export const allServices = async (req, res) => {
       .populate("cetagory", "name")
       .populate("subCetagory", "name")
       .populate("badges")
+      .populate("offer")
       .sort({ createdAt: -1 })
       .limit(limitNum)
       .skip(skip);
@@ -199,7 +226,8 @@ export const singleService = async (req, res) => {
     })
       .populate("cetagory")
       .populate("subCetagory")
-      .populate("badges");
+      .populate("badges")
+      .populate("offer");
 
     if (!service) {
       return res.status(404).json({
@@ -267,6 +295,17 @@ export const updateService = async (req, res) => {
       }
     }
 
+    // Map common spelling variations to schema fields
+    if (updateData.category && !updateData.cetagory) {
+      updateData.cetagory = updateData.category;
+    }
+    if (updateData.subcategory && !updateData.subCetagory) {
+      updateData.subCetagory = updateData.subcategory;
+    }
+    if (updateData.subCategory && !updateData.subCetagory) {
+      updateData.subCetagory = updateData.subCategory;
+    }
+
     // Handle file updates and old file deletion
     if (req.files) {
       const existingService = await Service.findById(id);
@@ -321,7 +360,8 @@ export const updateService = async (req, res) => {
     const updatedService = await Service.findById(service._id)
       .populate("cetagory")
       .populate("subCetagory")
-      .populate("badges");
+      .populate("badges")
+      .populate("offer");
 
     return res.status(200).json({
       success: true,
@@ -440,6 +480,7 @@ export const getFavorites = async (req, res) => {
           { path: "cetagory", select: "name" },
           { path: "subCetagory", select: "name" },
           { path: "badges" },
+          { path: "offer" },
         ],
       })
       .sort({ createdAt: -1 });
@@ -513,6 +554,7 @@ export const weeklyFeaturedServices = async (req, res) => {
         .populate("cetagory", "name")
         .populate("subCetagory", "name")
         .populate("badges")
+        .populate("offer")
         .sort({ updatedAt: -1 })
         .limit(2);
 
