@@ -9,6 +9,7 @@ import {
   removeFromFavorites,
   createFavorite,
   weeklyFeaturedServices,
+  offerServices,
 } from "../controller/service.controller.js";
 import superAdminMiddleware from "../../helper/middlewares/superAdminMiddleware.js";
 import { authenticateToken } from "../../helper/middlewares/auth.middleware.js";
@@ -86,5 +87,6 @@ router.delete(
 // Get weekly featured services
 router.get("/weekly-featured-services", cacheMiddleware(3600), weeklyFeaturedServices);
 
-export default router;
 
+router.get("/offer/services", cacheMiddleware(3600), offerServices);
+export default router;

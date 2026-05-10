@@ -1,17 +1,12 @@
+import mongoose from "mongoose";
 import Retting from "../schema/retting.modal.js";
-
+import Service from "../../service/schema/service.modal.js";
 import userModel from "../../auth/schema/auth.modal.js";
 
 export const createRetting = async (req, res) => {
-  return res.status(503).json({
-    message: "Retting creation is currently disabled",
-    reason: "Collaboration features have been removed",
-  });
-};
-
-export const userPersonalRetting = async (req, res) => {
   try {
-    const { page = 1, limit = 10, RettingType } = req.query;
+    const { serviceId } = req.params;
+    const { rating, comment } = req.body;
 
     // Get user ID from authenticated user (from JWT token)
     const userId = req.user?.id || req.user?._id;
@@ -24,222 +19,112 @@ export const userPersonalRetting = async (req, res) => {
       });
     }
 
-    // Convert pagination parameters
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
-    const skip = (pageNum - 1) * limitNum;
-
-    // Build filter - get Rettings where user is either Rettinger or Rettingee
-    const filter = {
-      isDeleted: false,
-      $or: [
-        { RettingerId: userId.toString() }, // Rettings I wrote
-        { RettingeeId: userId.toString() }, // Rettings about me
-      ],
-    };
-
-    // Filter by Retting type if specified
-    if (RettingType) {
-      filter.RettingType = RettingType;
-    }
-
-    // Get total count
-    const total = await Retting.countDocuments(filter);
-
-    // Get Rettings with pagination and populate related data
-    const Rettings = await Retting.find(filter)
-      .populate("collaborationId", "title status")
-      .populate("RettingerId", "name email image")
-      .populate("RettingeeId", "name email image")
-      .sort({ createdAt: -1 })
-      .limit(limitNum)
-      .skip(skip);
-
-    // Get statistics
-    const RettingsWritten = await Retting.countDocuments({
-      RettingerId: userId.toString(),
-      isDeleted: false,
-    });
-
-    const RettingsReceived = await Retting.countDocuments({
-      RettingeeId: userId.toString(),
-      isDeleted: false,
-    });
-
-    const averageRating = await Retting.aggregate([
-      {
-        $match: {
-          RettingeeId: userId.toString(),
-          isDeleted: false,
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          avgRating: { $avg: "$rating" },
-        },
-      },
-    ]);
-
-    // Get user details with rating info
-    const userWithRatings = await userModel
-      .findById(userId)
-      .select("name email image averageRating totalRettings");
-
-    return res.status(200).json({
-      success: true,
-      message: "User Rettings retrieved successfully",
-      data: {
-        user: userWithRatings,
-        pagination: {
-          currentPage: pageNum,
-          totalPages: Math.ceil(total / limitNum),
-          total,
-          limit: limitNum,
-        },
-        meta: {
-          RettingsWritten,
-          RettingsReceived,
-          averageRating: averageRating[0]?.avgRating || 0,
-          filterApplied: {
-            RettingType: RettingType || null,
-          },
-        },
-        Rettings,
-      },
-    });
-  } catch (error) {
-    console.error("Error fetching user Rettings:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error fetching user Rettings",
-      error: error.message,
-    });
-  }
-};
-
-export const userRetting = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { page = 1, limit = 10, RettingType } = req.query;
-
-    // Validate user ID
-    if (!userId) {
+    // Validate input
+    if (!serviceId) {
       return res.status(400).json({
         success: false,
-        message: "User ID is required",
+        message: "Service ID is required",
       });
     }
 
-    // Convert pagination parameters
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
-    const skip = (pageNum - 1) * limitNum;
-
-    // Build filter - get Rettings where user is either Rettinger or Rettingee
-    const filter = {
-      isDeleted: false,
-      $or: [
-        { RettingerId: userId }, // Rettings user wrote
-        { RettingeeId: userId }, // Rettings about user
-      ],
-    };
-
-    // Filter by Retting type if specified
-    if (RettingType) {
-      filter.RettingType = RettingType;
+    if (!rating) {
+      return res.status(400).json({
+        success: false,
+        message: "Rating is required",
+      });
     }
 
-    // Get total count
-    const total = await Retting.countDocuments(filter);
+    // Check if the service exists
+    const service = await Service.findById(serviceId);
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found",
+      });
+    }
 
-    // Get Rettings with pagination and populate related data
-    const Rettings = await Retting.find(filter)
-      .populate("collaborationId", "title status")
-      .populate("RettingerId", "name email image")
-      .populate("RettingeeId", "name email image")
-      .sort({ createdAt: -1 })
-      .limit(limitNum)
-      .skip(skip);
-
-    // Get statistics
-    const RettingsWritten = await Retting.countDocuments({
-      RettingerId: userId,
-      isDeleted: false,
+    // Create the retting (rating/review)
+    const newRetting = await Retting.create({
+      rating,
+      comment,
+      serviceId,
+      userId: userId,
+      RettingType: "service",
     });
 
-    const RettingsReceived = await Retting.countDocuments({
-      RettingeeId: userId,
-      isDeleted: false,
-    });
+    const populatedRetting = await Retting.findById(newRetting._id)
+      .populate("serviceId", "name image")
+      .populate("userId", "name email image");
 
-    const averageRating = await Retting.aggregate([
-      {
-        $match: {
-          RettingeeId: userId,
-          isDeleted: false,
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          avgRating: { $avg: "$rating" },
-        },
-      },
-    ]);
-
-    // Get user details with rating info
-    const userWithRatings = await userModel
-      .findById(userId)
-      .select("name email image averageRating totalRettings");
-
-    return res.status(200).json({
-      success: true,
-      message: "User Rettings retrieved successfully",
-      data: {
-        user: userWithRatings,
-        pagination: {
-          currentPage: pageNum,
-          totalPages: Math.ceil(total / limitNum),
-          total,
-          limit: limitNum,
-        },
-        meta: {
+    // Optionally update the Service model's reviews array if you want to keep a copy there
+    await Service.findByIdAndUpdate(serviceId, {
+      $push: {
+        reviews: {
           userId,
-          RettingsWritten,
-          RettingsReceived,
-          averageRating: averageRating[0]?.avgRating || 0,
-          filterApplied: {
-            RettingType: RettingType || null,
-          },
+          rating,
+          comment,
+          createdAt: new Date(),
         },
-        Rettings,
       },
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Retting created successfully",
+      data: populatedRetting,
     });
   } catch (error) {
-    console.error("Error fetching user Rettings:", error);
+    console.error("Error creating Retting:", error);
     return res.status(500).json({
       success: false,
-      message: "Error fetching user Rettings",
+      message: "Error creating Retting",
       error: error.message,
     });
   }
 };
+
 
 export const deleteRetting = async (req, res) => {
   try {
     const { RettingId } = req.params;
 
-    // Get user ID from authenticated user (from JWT token)
-    const userId = req.user?.id || req.user?._id;
-
-    // Validate user authentication
-    if (!userId) {
-      return res.status(401).json({
+    if (!RettingId) {
+      return res.status(400).json({
         success: false,
-        message: "User authentication required",
+        message: "Retting ID is required",
       });
     }
+
+    const retting = await Retting.findById(RettingId);
+
+    if (!retting) {
+      return res.status(404).json({
+        success: false,
+        message: "Retting not found",
+      });
+    }
+
+    // Soft delete the Retting
+    await Retting.findByIdAndUpdate(RettingId, { isDeleted: true });
+
+    return res.status(200).json({
+      success: true,
+      message: "Retting deleted successfully by Admin",
+    });
+  } catch (error) {
+    console.error("Error deleting Retting:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error deleting Retting",
+      error: error.message,
+    });
+  }
+};
+
+
+export const singleRetting = async (req, res) => {
+  try {
+    const { RettingId } = req.params;
 
     // Validate Retting ID
     if (!RettingId) {
@@ -250,44 +135,27 @@ export const deleteRetting = async (req, res) => {
     }
 
     // Find the Retting
-    const Retting = await Retting.findById(RettingId);
+    const retting = await Retting.findById(RettingId)
+      .populate("serviceId", "name image")
+      .populate("userId", "name email image");
 
-    if (!Retting) {
+    if (!retting) {
       return res.status(404).json({
         success: false,
         message: "Retting not found",
       });
     }
 
-    // Check if Retting is already deleted
-    if (Retting.isDeleted) {
-      return res.status(400).json({
-        success: false,
-        message: "Retting is already deleted",
-      });
-    }
-
-    // Check if user is authorized to delete this Retting
-    // Only the Rettinger (who wrote the Retting) can delete it
-    if (Retting.RettingerId.toString() !== userId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "Only the Rettinger can delete this Retting",
-      });
-    }
-
-    // Soft delete the Retting
-    await Retting.findByIdAndUpdate(RettingId, { isDeleted: true });
-
     return res.status(200).json({
       success: true,
-      message: "Retting deleted successfully",
+      message: "Retting retrieved successfully",
+      data: retting,
     });
   } catch (error) {
-    console.error("Error deleting Retting:", error);
+    console.error("Error fetching Retting:", error);
     return res.status(500).json({
       success: false,
-      message: "Error deleting Retting",
+      message: "Error fetching Retting",
       error: error.message,
     });
   }
@@ -320,40 +188,12 @@ export const allRettings = async (req, res) => {
 
     // Get Rettings with pagination and populate related data
     const Rettings = await Retting.find(filter)
-      .populate("collaborationId", "title status")
-      .populate("RettingerId", "name email image")
-      .populate("RettingeeId", "name email image")
+      .populate("serviceId", "name image")
+      .populate("userId", "name email image")
+      .populate("serviceProviderId", "name email image")
       .sort({ createdAt: -1 })
       .limit(limitNum)
       .skip(skip);
-
-    // Get statistics
-    const totalRettings = await Retting.countDocuments({ isDeleted: false });
-
-    const RettingsByType = await Retting.aggregate([
-      {
-        $match: { isDeleted: false },
-      },
-      {
-        $group: {
-          _id: "$RettingType",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-
-    const RettingsByRating = await Retting.aggregate([
-      {
-        $match: { isDeleted: false },
-      },
-      {
-        $group: {
-          _id: "$rating",
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: -1 } },
-    ]);
 
     const averageRating = await Retting.aggregate([
       {
@@ -370,24 +210,15 @@ export const allRettings = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "All Rettings retrieved successfully",
-      data: {
+      meta: {
         pagination: {
           currentPage: pageNum,
           totalPages: Math.ceil(total / limitNum),
           total,
           limit: limitNum,
         },
-        meta: {
-          totalRettings,
-          averageRating: averageRating[0]?.avgRating || 0,
-          RettingsByType,
-          RettingsByRating,
-          filterApplied: {
-            RettingType: RettingType || null,
-            rating: rating || null,
-          },
-        },
-        Rettings,
+        data: Rettings,
+        averageRating: averageRating[0]?.avgRating || 0,
       },
     });
   } catch (error) {
@@ -395,6 +226,68 @@ export const allRettings = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error fetching all Rettings",
+      error: error.message,
+    });
+  }
+};
+
+export const getReetingByserviceId = async (req, res) => {
+  try {
+    const { serviceId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    // Validate service ID
+    if (!serviceId) {
+      return res.status(400).json({
+        success: false,
+        message: "Service ID is required",
+      });
+    }
+
+    // Convert pagination parameters
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get total count
+    const total = await Retting.countDocuments({
+      serviceId: serviceId,
+      isDeleted: false,
+    });
+
+    // Find the Rettings for this service with pagination
+    const rettings = await Retting.find({ serviceId: serviceId, isDeleted: false })
+      .populate("serviceId", "name image")
+      .populate("userId", "name email image")
+      .sort({ createdAt: -1 })
+      .limit(limitNum)
+      .skip(skip);
+
+    if (!rettings || rettings.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No reviews found for this service",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Reviews retrieved successfully",
+      meta: {
+        pagination: {
+          currentPage: pageNum,
+          totalPages: Math.ceil(total / limitNum),
+          total,
+          limit: limitNum,
+        },
+        data: rettings,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching Retting:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching Retting",
       error: error.message,
     });
   }

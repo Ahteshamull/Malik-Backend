@@ -9,6 +9,7 @@ import SubCetagory from "../../subCetagory/schema/cetagory.modal.js";
 import { autoAssignBadges } from "../../badges/controller/badge.controller.js";
 import Favorite from "../schema/favorite.modal.js";
 import { delCacheByPrefix } from "../../helper/cache.js";
+import Offer from "../../offer/schema/offer.modal.js";
 
 
 export const createService = async (req, res) => {
@@ -622,6 +623,57 @@ export const weeklyFeaturedServices = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error fetching weekly featured services",
+      error: error.message,
+    });
+  }
+};
+
+export const offerServices = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // 1. Find all active offer IDs
+    const activeOffers = await Offer.find({ status: "active" }).select("_id");
+    const activeOfferIds = activeOffers.map((o) => o._id);
+
+    // 2. Find services that have one of these active offers
+    const query = {
+      offer: { $in: activeOfferIds },
+      isDeleted: false,
+    };
+
+    const total = await Service.countDocuments(query);
+
+    const services = await Service.find(query)
+      .populate("cetagory", "name")
+      .populate("subCetagory", "name")
+      .populate("badges")
+      .populate("offer")
+      .sort({ updatedAt: -1 })
+      .limit(limitNum)
+      .skip(skip);
+
+    return res.status(200).json({
+      success: true,
+      message: "Offer services retrieved successfully",
+      meta: {
+        pagination: {
+          currentPage: pageNum,
+          totalPages: Math.ceil(total / limitNum),
+          total,
+          limit: limitNum,
+        },
+        data: services,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching offer services",
       error: error.message,
     });
   }

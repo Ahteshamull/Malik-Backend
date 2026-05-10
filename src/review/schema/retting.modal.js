@@ -20,24 +20,24 @@ const rettingSchema = new Schema(
       ref: "Service",
       required: true,
     },
-    RettingerId: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    RettingeeId: {
+    serviceProviderId: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
     RettingType: {
       type: String,
+      enum: ["service", "user"],
+      default: "service",
     },
     isDeleted: {
       type: Boolean,
       default: false,
     },
-
   },
   {
     timestamps: true,
@@ -47,10 +47,11 @@ const rettingSchema = new Schema(
 
 // Create indexes for better query performance
 rettingSchema.index({ serviceId: 1 });
-rettingSchema.index({ RettingerId: 1 });
-rettingSchema.index({ RettingeeId: 1 });
+rettingSchema.index({ userId: 1 });
+rettingSchema.index({ serviceProviderId: 1 });
 rettingSchema.index({ rating: 1 });
-
+rettingSchema.index({ isDeleted: 1 });
+rettingSchema.index({ RettingType: 1 });
 
 // Static method to calculate average rating and total reviews
 rettingSchema.statics.calculateAverageRating = async function (serviceId) {
@@ -93,6 +94,5 @@ rettingSchema.post(/^findOneAnd/, async function (doc) {
 });
 
 const Retting = mongoose.model("Retting", rettingSchema);
-
 
 export default Retting;
