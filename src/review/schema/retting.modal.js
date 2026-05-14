@@ -38,6 +38,14 @@ const rettingSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    isReport: {
+      type: Boolean,
+      default: false,
+    },
+    reportReason: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

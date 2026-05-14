@@ -5,6 +5,7 @@ import {
   singleRetting,
   getReetingByserviceId,
   deleteRetting,
+  reportAReview,
 } from "../controller/review.controller.js";
 import {
   authenticateToken,
@@ -32,5 +33,8 @@ router.delete(
   requireSuperAdminOrAdminRole,
   deleteRetting,
 );
+
+// localhost:4000/api/v1/review/report-review/:reviewId
+router.post("/report-review/:reviewId", authenticateToken, reportAReview);
 
 export default router;

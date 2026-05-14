@@ -83,7 +83,6 @@ export const createRetting = async (req, res) => {
   }
 };
 
-
 export const deleteRetting = async (req, res) => {
   try {
     const { RettingId } = req.params;
@@ -120,7 +119,6 @@ export const deleteRetting = async (req, res) => {
     });
   }
 };
-
 
 export const singleRetting = async (req, res) => {
   try {
@@ -256,7 +254,10 @@ export const getReetingByserviceId = async (req, res) => {
     });
 
     // Find the Rettings for this service with pagination
-    const rettings = await Retting.find({ serviceId: serviceId, isDeleted: false })
+    const rettings = await Retting.find({
+      serviceId: serviceId,
+      isDeleted: false,
+    })
       .populate("serviceId", "name image")
       .populate("userId", "name email image")
       .sort({ createdAt: -1 })
@@ -288,6 +289,50 @@ export const getReetingByserviceId = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error fetching Retting",
+      error: error.message,
+    });
+  }
+};
+
+export const reportAReview = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { reason } = req.body;
+    const userId = req.user._id;
+
+    // Validate review ID
+    if (!reviewId) {
+      return res.status(400).json({
+        success: false,
+        message: "Review ID is required",
+      });
+    }
+
+
+    // Check if the review exists
+    const review = await Retting.findById(reviewId);
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: "Review not found",
+      });
+    }
+
+    // Update the review with report details
+    review.isReport = true;
+    review.reportReason = reason;
+    await review.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Review reported successfully",
+      data: review,
+    });
+  } catch (error) {
+    console.error("Error reporting review:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error reporting review",
       error: error.message,
     });
   }
