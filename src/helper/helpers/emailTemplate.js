@@ -10,7 +10,7 @@ const emailTemplate_verify = (otp) => `
       ${otp}
     </h1>
 
-    <p>This OTP will expire in <strong>10 minutes</strong>.</p>
+    <p>This OTP will expire in <strong>01 minutes</strong>.</p>
     <p style="color:#777;font-size:13px">
       If you did not request this, please ignore this email.
     </p>

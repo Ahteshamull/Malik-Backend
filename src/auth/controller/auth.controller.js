@@ -89,7 +89,7 @@ export const createUser = async (req, res) => {
     // Generate 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 01 minutes
 
     // Validate travelStyle array
     const validTravelStyles = [
@@ -102,8 +102,8 @@ export const createUser = async (req, res) => {
     const travelStyleArray = Array.isArray(travelStyle)
       ? travelStyle.filter((s) => validTravelStyles.includes(s))
       : travelStyle && validTravelStyles.includes(travelStyle)
-      ? [travelStyle]
-      : [];
+        ? [travelStyle]
+        : [];
 
     const user = new userModel({
       userName: normalizedUserName,
@@ -132,7 +132,8 @@ export const createUser = async (req, res) => {
 
     return res.status(200).send({
       success: true,
-      message: "A 4-digit verification code has been sent to your email. Please verify to activate your account.",
+      message:
+        "A 4-digit verification code has been sent to your email. Please verify to activate your account.",
       data: { email: normalizedEmail },
     });
   } catch (error) {
@@ -181,7 +182,10 @@ export const verifyRegistration = async (req, res) => {
     }
 
     // Verify OTP
-    const isOtpValid = await bcrypt.compare(otp.toString(), user.registrationOtp);
+    const isOtpValid = await bcrypt.compare(
+      otp.toString(),
+      user.registrationOtp,
+    );
 
     if (!isOtpValid) {
       return res.status(400).json({
@@ -194,19 +198,20 @@ export const verifyRegistration = async (req, res) => {
     user.isVerify = true;
     user.registrationOtp = undefined;
     user.otpExpiry = undefined;
-    
+
     // Clear expireAt field so MongoDB doesn't delete the verified user
     user.expireAt = undefined;
-    
+
     await user.save({ validateBeforeSave: false });
 
     // Notify admin (non-blocking)
     notifyAdminOnUserCreated(user._id, user.userName, user.email).catch((err) =>
-      console.error("Notification failed:", err)
+      console.error("Notification failed:", err),
     );
 
     // ✅ Automatically generate tokens (Auto-login after verify)
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user);
+    const { accessToken, refreshToken } =
+      await generateAccessAndRefreshToken(user);
 
     const userData = await userModel
       .findById(user._id)
@@ -237,7 +242,6 @@ export const verifyRegistration = async (req, res) => {
     });
   }
 };
-
 
 export const getMyProfile = async (req, res) => {
   // User ID should be available in req.user from auth middleware
@@ -306,7 +310,8 @@ export const login = async (req, res) => {
   if (!existingUser.isVerify) {
     return res.status(403).json({
       error: true,
-      message: "Please verify your email before logging in. Check your inbox for the verification code.",
+      message:
+        "Please verify your email before logging in. Check your inbox for the verification code.",
     });
   }
 
@@ -574,22 +579,22 @@ export const ResendOtp = async (req, res) => {
     // Generate a fresh 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 01 minutes
 
     // Update registration OTP directly on the user document
     existingUser.registrationOtp = hashedOtp;
     existingUser.otpExpiry = otpExpiry;
-    
+
     // Extend account expiry timer by another 5 minutes on resend
     existingUser.expireAt = new Date(Date.now() + 5 * 60 * 1000);
-    
+
     await existingUser.save({ validateBeforeSave: false });
 
     // Send registration verification email
     await sendOtp.sendRegistrationOTP(
       normalizedEmail,
       otp,
-      existingUser.userName || "User"
+      existingUser.userName || "User",
     );
 
     return res.status(200).json({

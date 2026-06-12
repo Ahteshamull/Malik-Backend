@@ -59,10 +59,9 @@ class SendOtp {
     try {
       const transporter = this.getTransporter();
       await transporter.verify();
-     
+
       return { success: true, message: "Email service connected successfully" };
     } catch (error) {
-    
       return { success: false, error: error.message };
     }
   }
@@ -87,19 +86,15 @@ class SendOtp {
         `,
       });
 
-     
       return { success: true, messageId: result.messageId };
     } catch (error) {
-     
       return { success: false, error: error.message };
     }
   }
 
   async sendOTPEmail(email, otp, userName = "User") {
     const senderEmail =
-      process.env.EMAIL_FROM ||
-      process.env.OTP_EMAIL ||
-      process.env.EMAIL_USER;
+      process.env.EMAIL_FROM || process.env.OTP_EMAIL || process.env.EMAIL_USER;
 
     const mailOptions = {
       from: `"Caribee" <${senderEmail}>`,
@@ -120,7 +115,7 @@ We received a request to reset the password for your Caribee account.
 
 Your reset code: ${otp}
 
-This code will expire in 10 minutes.
+This code will expire in 01 minutes.
 
 If you did not request a password reset, please ignore this email. Your account is safe.
 
@@ -175,7 +170,7 @@ If you did not request a password reset, please ignore this email. Your account 
                       </h2>
                       <p style="margin:0 0 24px;color:#4a5568;font-size:15px;line-height:1.7;">
                         We received a request to reset the password for your Caribee account.
-                        Use the code below to continue. This code is valid for <strong>10 minutes</strong>.
+                        Use the code below to continue. This code is valid for <strong>01 minutes</strong>.
                       </p>
 
                       <!-- OTP Box -->
@@ -193,7 +188,7 @@ If you did not request a password reset, please ignore this email. Your account 
                       </table>
 
                       <p style="margin:0 0 8px;color:#718096;font-size:13px;text-align:center;">
-                        ⏱ Expires in <strong style="color:#e53e3e;">10 minutes</strong>
+                        ⏱ Expires in <strong style="color:#e53e3e;">01 minutes</strong>
                       </p>
                     </td>
                   </tr>
@@ -255,9 +250,7 @@ If you did not request a password reset, please ignore this email. Your account 
 
   async sendRegistrationOTP(email, otp, userName = "User") {
     const senderEmail =
-      process.env.EMAIL_FROM ||
-      process.env.OTP_EMAIL ||
-      process.env.EMAIL_USER;
+      process.env.EMAIL_FROM || process.env.OTP_EMAIL || process.env.EMAIL_USER;
 
     const mailOptions = {
       from: `"Caribee" <${senderEmail}>`,
@@ -276,7 +269,7 @@ Thank you for registering. Please verify your email to activate your account.
 
 Your verification code: ${otp}
 
-This code will expire in 10 minutes.
+This code will expire in 01 minutes.
 
 If you did not create an account, please ignore this email.
 
@@ -330,7 +323,7 @@ If you did not create an account, please ignore this email.
                         </tr>
                       </table>
                       <p style="margin:0 0 8px;color:#555;font-size:14px;text-align:center;">
-                        ⏱ This code expires in <strong>10 minutes</strong>.
+                        ⏱ This code expires in <strong>01 minutes</strong>.
                       </p>
                     </td>
                   </tr>
@@ -495,7 +488,7 @@ For your security, we recommend:
     try {
       const transporter = this.getTransporter();
       const info = await transporter.sendMail(mailOptions);
-    
+
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error("Failed to send confirmation email:", error);
@@ -505,9 +498,7 @@ For your security, we recommend:
   async sendReportNotification(reportData) {
     const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
     const senderEmail =
-      process.env.EMAIL_FROM ||
-      process.env.OTP_EMAIL ||
-      process.env.EMAIL_USER;
+      process.env.EMAIL_FROM || process.env.OTP_EMAIL || process.env.EMAIL_USER;
 
     const mailOptions = {
       from: `"Caribee System" <${senderEmail}>`,
