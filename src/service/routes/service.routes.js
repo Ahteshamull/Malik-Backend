@@ -42,11 +42,16 @@ router.post(
 // ?cetagory=Resturant	Returns all services belonging to "Resturant" category.
 // ?offer=true&cetagory=Resturant	Returns services in "Resturant" category that have an offer.
 // ?offerType=limited	Returns services with a specific offer type.
-router.get("/all-services", cacheMiddleware(3600), allServices);
+router.get("/all-services", userMiddleware, cacheMiddleware(3600), allServices);
 
 //localhost:3000/api/v1/service/single-service/:id
 // Get a single service
-router.get("/single-service/:id", cacheMiddleware(3600), singleService);
+router.get(
+  "/single-service/:id",
+  userMiddleware,
+  cacheMiddleware(3600),
+  singleService,
+);
 
 //localhost:3000/api/v1/service/update-service/:id
 // Update a service
@@ -72,8 +77,12 @@ router.post("/add-to-favorites/:serviceId", userMiddleware, createFavorite);
 
 //localhost:3000/api/v1/service/get-favorites
 // Get all favorites
-router.get("/get-favorites", userMiddleware, cacheMiddleware(3600), getFavorites);
-
+router.get(
+  "/get-favorites",
+  userMiddleware,
+  cacheMiddleware(3600),
+  getFavorites,
+);
 
 //localhost:3000/api/v1/service/remove-from-favorites/:id
 // Remove a service from favorites
@@ -85,8 +94,11 @@ router.delete(
 
 //localhost:3000/api/v1/service/weekly-featured-services
 // Get weekly featured services
-router.get("/weekly-featured-services", cacheMiddleware(3600), weeklyFeaturedServices);
-
+router.get(
+  "/weekly-featured-services",
+  cacheMiddleware(3600),
+  weeklyFeaturedServices,
+);
 
 router.get("/offer/services", cacheMiddleware(3600), offerServices);
 export default router;
