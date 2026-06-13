@@ -42,7 +42,7 @@ router.post(
 // ?cetagory=Resturant	Returns all services belonging to "Resturant" category.
 // ?offer=true&cetagory=Resturant	Returns services in "Resturant" category that have an offer.
 // ?offerType=limited	Returns services with a specific offer type.
-router.get("/all-services", userMiddleware, cacheMiddleware(3600), allServices);
+router.get("/all-services",  cacheMiddleware(3600), allServices);
 
 //localhost:3000/api/v1/service/single-service/:id
 // Get a single service
