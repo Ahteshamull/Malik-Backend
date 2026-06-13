@@ -480,13 +480,20 @@ export const createFavorite = async (req, res) => {
       favoriteService: serviceId,
     });
 
+    const baseUrl = process.env.BASE_URL || "/api/v1";
+
     if (existingFavorite) {
       // Remove from favorites
       await Favorite.deleteOne({ _id: existingFavorite._id });
+      
+      // Invalidate service cache
+      delCacheByPrefix(`${baseUrl}/service`);
+      
       return res.status(200).json({
         success: true,
         message: "Service removed from favorites successfully",
         isFavorite: false,
+        isFavourite: false,
       });
     } else {
       // Add to favorites
@@ -496,10 +503,15 @@ export const createFavorite = async (req, res) => {
       });
 
       await favorite.save();
+      
+      // Invalidate service cache
+      delCacheByPrefix(`${baseUrl}/service`);
+      
       return res.status(201).json({
         success: true,
         message: "Service added to favorites successfully",
         isFavorite: true,
+        isFavourite: true,
         data: favorite,
       });
     }
@@ -526,6 +538,7 @@ export const getFavorites = async (req, res) => {
     const favorites = await Favorite.find({ myId: userId })
       .populate({
         path: "favoriteService",
+        match: { isDeleted: false },
         populate: [
           { path: "cetagory", select: "name" },
           { path: "subCetagory", select: "name" },
@@ -535,10 +548,13 @@ export const getFavorites = async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
+    // Filter out favorites where the service was soft deleted or hard deleted
+    const validFavorites = favorites.filter((f) => f.favoriteService !== null);
+
     return res.status(200).json({
       success: true,
       message: "Favorites retrieved successfully",
-      data: favorites,
+      data: validFavorites,
     });
   } catch (error) {
     return res.status(500).json({
@@ -575,6 +591,10 @@ export const removeFromFavorites = async (req, res) => {
     }
 
     await Favorite.findByIdAndDelete(favorite._id);
+
+    // Invalidate service cache
+    const baseUrl = process.env.BASE_URL || "/api/v1";
+    delCacheByPrefix(`${baseUrl}/service`);
 
     return res.status(200).json({
       success: true,
