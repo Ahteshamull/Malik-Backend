@@ -5,6 +5,7 @@ const cetagorySchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
+      enum: ["Resturants", "Experiences", "Events"],
     },
     image: {
       type: String,

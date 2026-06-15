@@ -11,6 +11,9 @@ const serviceSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    serviceLink: {
+      type: String,
+    },
     description: {
       type: String,
     },

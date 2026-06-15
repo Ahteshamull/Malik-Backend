@@ -11,7 +11,6 @@ import Favorite from "../schema/favorite.modal.js";
 import { delCacheByPrefix } from "../../helper/cache.js";
 import Offer from "../../offer/schema/offer.modal.js";
 
-
 export const createService = async (req, res) => {
   try {
     let serviceData = { ...req.body };
@@ -35,6 +34,16 @@ export const createService = async (req, res) => {
     }
     if (serviceData.subCategory && !serviceData.subCetagory) {
       serviceData.subCetagory = serviceData.subCategory;
+    }
+    // Map common link field variations to `serviceLink`
+    if (serviceData.service_link && !serviceData.serviceLink) {
+      serviceData.serviceLink = serviceData.service_link;
+    }
+    if (serviceData.link && !serviceData.serviceLink) {
+      serviceData.serviceLink = serviceData.link;
+    }
+    if (serviceData.serviceURL && !serviceData.serviceLink) {
+      serviceData.serviceLink = serviceData.serviceURL;
     }
 
     // Parse reviews if sent as a string (common in form-data)
@@ -102,7 +111,6 @@ export const createService = async (req, res) => {
       message: "Service created successfully",
       data: service,
     });
-
   } catch (error) {
     console.error("Error creating service:", error);
     return res.status(500).json({
@@ -404,6 +412,16 @@ export const updateService = async (req, res) => {
     if (updateData.subCategory && !updateData.subCetagory) {
       updateData.subCetagory = updateData.subCategory;
     }
+    // Map common link field variations to `serviceLink`
+    if (updateData.service_link && !updateData.serviceLink) {
+      updateData.serviceLink = updateData.service_link;
+    }
+    if (updateData.link && !updateData.serviceLink) {
+      updateData.serviceLink = updateData.link;
+    }
+    if (updateData.serviceURL && !updateData.serviceLink) {
+      updateData.serviceLink = updateData.serviceURL;
+    }
 
     // Parse reviews if sent as a string
     if (typeof updateData.reviews === "string") {
@@ -487,7 +505,6 @@ export const updateService = async (req, res) => {
       message: "Service updated successfully",
       data: updatedService,
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -517,7 +534,6 @@ export const deleteService = async (req, res) => {
       success: true,
       message: "Service deleted successfully",
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -560,10 +576,10 @@ export const createFavorite = async (req, res) => {
     if (existingFavorite) {
       // Remove from favorites
       await Favorite.deleteOne({ _id: existingFavorite._id });
-      
+
       // Invalidate service cache
       delCacheByPrefix(`${baseUrl}/service`);
-      
+
       return res.status(200).json({
         success: true,
         message: "Service removed from favorites successfully",
@@ -578,10 +594,10 @@ export const createFavorite = async (req, res) => {
       });
 
       await favorite.save();
-      
+
       // Invalidate service cache
       delCacheByPrefix(`${baseUrl}/service`);
-      
+
       return res.status(201).json({
         success: true,
         message: "Service added to favorites successfully",
