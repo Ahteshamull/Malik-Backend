@@ -10,6 +10,7 @@ import {
   createFavorite,
   weeklyFeaturedServices,
   offerServices,
+  allServicesWithCetagory,
 } from "../controller/service.controller.js";
 import superAdminMiddleware from "../../helper/middlewares/superAdminMiddleware.js";
 import { authenticateToken } from "../../helper/middlewares/auth.middleware.js";
@@ -42,7 +43,10 @@ router.post(
 // ?cetagory=Resturant	Returns all services belonging to "Resturant" category.
 // ?offer=true&cetagory=Resturant	Returns services in "Resturant" category that have an offer.
 // ?offerType=limited	Returns services with a specific offer type.
-router.get("/all-services",  cacheMiddleware(3600), allServices);
+router.get("/all-services", cacheMiddleware(3600), allServices);
+
+
+router.get("/all-services-with-cetagory/:categoryId", cacheMiddleware(3600), allServicesWithCetagory);
 
 //localhost:3000/api/v1/service/single-service/:id
 // Get a single service

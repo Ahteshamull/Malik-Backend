@@ -240,6 +240,81 @@ export const allServices = async (req, res) => {
   }
 };
 
+export const allServicesWithCetagory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const filter = { cetagory: categoryId, isDeleted: false };
+
+    const total = await Service.countDocuments(filter);
+    const totalPages = Math.ceil(total / limitNum);
+
+    // Check if user is logged in to personalize favorites
+    let userFavorites = [];
+    const token =
+      req.cookies?.accessToken ||
+      req.cookies?.token ||
+      (req.headers.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.split(" ")[1]
+        : null);
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(
+          token,
+          process.env.ACCESS_TOKEN_SECRET || process.env.PRV_TOKEN,
+        );
+        const userId = decoded._id || decoded.id;
+        if (userId) {
+          const favorites = await Favorite.find({ myId: userId });
+          userFavorites = favorites.map((f) => f.favoriteService.toString());
+        }
+      } catch (err) {
+        // Ignore token errors
+      }
+    }
+
+    const services = await Service.find(filter)
+      .populate("cetagory", "name")
+      .populate("subCetagory", "name")
+      .populate("badges")
+      .populate("offer")
+      .sort({ createdAt: -1 })
+      .limit(limitNum)
+      .skip(skip);
+
+    // Add isFavourite property to each service
+    const servicesWithFavorites = services.map((service) => {
+      const serviceObj = service.toObject();
+      serviceObj.isFavourite = userFavorites.includes(service._id.toString());
+      return serviceObj;
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Services by category retrieved successfully",
+      meta: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+      },
+      data: servicesWithFavorites,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching services by category",
+      error: error.message,
+    });
+  }
+};
+
 export const singleService = async (req, res) => {
   try {
     const { id } = req.params;
