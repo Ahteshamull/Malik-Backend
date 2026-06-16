@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 
 const OfferSchema = new mongoose.Schema({
+cetagory: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Cetagory",
+},
   title: {
     type: String,
   },
@@ -8,6 +12,9 @@ const OfferSchema = new mongoose.Schema({
     type: String,
   },
   image: {
+    type: String,
+  },
+  serviceLink: {
     type: String,
   },
   discount: {
@@ -18,6 +25,9 @@ const OfferSchema = new mongoose.Schema({
   },
   endTime: {
     type: Date,
+  },
+  promocode: {
+    type: String,
   },
     status: {
         type: String,

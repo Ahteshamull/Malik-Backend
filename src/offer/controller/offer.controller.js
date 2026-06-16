@@ -1,22 +1,27 @@
 import Offer from "../schema/offer.modal.js";
+import Service from "../../service/schema/service.modal.js";
 import fs from "fs";
 import path from "path";
 
 export const createOffer = async (req, res) => {
     try {
-        const { title, description, discount, startTime, endTime } = req.body;
+        const { title, description,cetagory, discount, startTime, endTime,  promocode, serviceLink } = req.body;
         const image = req.file ? `/uploads/${req.file.filename}` : req.body.image;
         
         const offer = new Offer({
             title,
             description,
+            cetagory,
             image,
             discount,
             startTime,
             endTime,
+            promocode,
+            serviceLink,
         });
         
         await offer.save();
+        await offer.populate("cetagory", "name"); // populate the category name
         return res.status(201).json({
             success: true,
             message: "Offer created successfully",
@@ -33,7 +38,7 @@ export const createOffer = async (req, res) => {
 
 export const allOffers = async (req, res) => {
     try {
-        const offers = await Offer.find().sort({ createdAt: -1 });
+        const offers = await Offer.find().populate("cetagory", "name").sort({ createdAt: -1 });
         return res.status(200).json({
             success: true,
             message: "Offers retrieved successfully",
@@ -50,7 +55,7 @@ export const allOffers = async (req, res) => {
 
 export const singleOffer = async (req, res) => {
     try {
-        const offer = await Offer.findById(req.params.id);
+        const offer = await Offer.findById(req.params.id).populate("cetagory", "name");
         if (!offer) {
             return res.status(404).json({ success: false, message: "Offer not found" });
         }
@@ -93,7 +98,7 @@ export const updateOffer = async (req, res) => {
             req.params.id,
             { $set: updateData },
             { new: true }
-        );
+        ).populate("cetagory", "name");
 
         return res.status(200).json({
             success: true,
@@ -137,4 +142,32 @@ export const deleteOffer = async (req, res) => {
         });
     }
 };
-
+
+export const getCatagoryOffers = async (req, res) => {
+    try {
+        const categoryId = req.params.id;
+        
+        // Find services in this category that have an offer attached
+        const services = await Service.find({ 
+            cetagory: categoryId,
+            isDeleted: false,
+            offer: { $exists: true, $ne: null } 
+        })
+        .populate("offer")
+        .populate("cetagory", "name")
+        .populate("subCetagory", "name");
+
+        return res.status(200).json({
+            success: true,
+            message: "Category-wise offer services retrieved successfully",
+            data: services,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Failed to retrieve category-wise offer services",
+            error: error.message,
+        });
+    }
+};
+

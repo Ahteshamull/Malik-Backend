@@ -5,6 +5,7 @@ import {
   singleOffer,
   updateOffer,
   deleteOffer,
+  getCatagoryOffers,
 } from "../controller/offer.controller.js";
 import superAdminMiddleware from "../../helper/middlewares/superAdminMiddleware.js";
 import {
@@ -40,5 +41,8 @@ router.patch(
 
 // localhost:3000/api/v1/offer/delete-offer/:id
 router.delete("/delete-offer/:id", superAdminMiddleware, deleteOffer);
+
+//localhost:3000/api/v1/offer/get-cetagory-offers/:id
+router.get("/get-cetagory-offers/:id", getCatagoryOffers);
 
 export default router;
