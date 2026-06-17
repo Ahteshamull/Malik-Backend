@@ -45,4 +45,7 @@ router.delete("/delete-offer/:id", superAdminMiddleware, deleteOffer);
 //localhost:3000/api/v1/offer/get-cetagory-offers/:id
 router.get("/get-cetagory-offers/:id", getCatagoryOffers);
 
+// localhost:3000/api/v1/offer/get-offer-by-id/:id
+router.get("/get-offer-by-id/:id", singleOffer);
+
 export default router;
