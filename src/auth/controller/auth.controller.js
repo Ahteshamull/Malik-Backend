@@ -950,3 +950,175 @@ export const deleteMyAccount = async (req, res) => {
     });
   }
 };
+
+export const socialMediaLogin = async (req, res) => {
+  const payload = req.body;
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    // Provider validation
+    if (!["google", "apple"].includes(payload?.provider?.toLowerCase())) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(403).json({ error: true, message: "Invalid provider" });
+    }
+
+    if (!payload.email) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ error: true, message: "Email is required" });
+    }
+
+    // Check if user exists
+    const isUserExist = await userModel.findOne(
+      { email: payload.email.toLowerCase().trim() },
+      null,
+      { session },
+    );
+
+    let user;
+
+    if (!isUserExist) {
+      // Validate required fields for new social media account
+      const requiredFields = [
+        "phone", "country", "address", "latitude", "longitude",
+        "experience", "ageRange", "gender", "image", "travelStyle"
+      ];
+      
+      const missingFields = requiredFields.filter(field => !payload[field]);
+      
+      if (missingFields.length > 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ 
+          error: true, 
+          message: "Additional information is required to create a new account.",
+          missingFields 
+        });
+      }
+
+      // Create new user for social login
+      const randomPassword = await bcrypt.hash(`social-${Date.now()}-${Math.random()}`, 10);
+      const newUser = new userModel({
+        userName: payload.name ? payload.name.trim().toLowerCase().replace(/\s+/g, '') + Math.floor(Math.random() * 1000) : `user${Date.now()}`,
+        email: payload.email.toLowerCase().trim(),
+        isVerify: true,
+        phone: payload.phone,
+        country: payload.country,
+        address: payload.address,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        experience: payload.experience,
+        ageRange: payload.ageRange,
+        gender: payload.gender,
+        image: payload.image,
+        travelStyle: Array.isArray(payload.travelStyle) ? payload.travelStyle : [payload.travelStyle],
+        password: randomPassword,
+        confirmPassword: randomPassword,
+        type: payload.provider.toLowerCase(),
+      });
+      user = await newUser.save({ session });
+    } else {
+      user = isUserExist;
+      
+      // If account exists but with a different provider/type
+      if (user.type && user.type !== payload.provider.toLowerCase()) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          error: true,
+          message: `Account already exists with ${user.type}. Please login using your ${user.type} account.`
+        });
+      }
+
+      let isModified = false;
+      
+      // Mark as verified if they login via social media and were not verified
+      if (!user.isVerify) {
+        user.isVerify = true;
+        isModified = true;
+      }
+      
+      // Update the type if it was not set
+      if (!user.type) {
+        user.type = payload.provider.toLowerCase();
+        isModified = true;
+      }
+
+      if (isModified) {
+        await user.save({ session });
+      }
+    }
+
+    // Generate Access and Refresh Tokens
+    const accessToken = jwt.sign(
+      {
+        _id: user._id,
+        email: user.email,
+        role: user.role,
+      },
+      process.env.ACCESS_TOKEN_SECRET || process.env.PRV_TOKEN,
+      { expiresIn: "1d" }
+    );
+
+    const refreshToken = jwt.sign(
+      {
+        _id: user._id,
+        role: user.role,
+      },
+      process.env.REFRESH_TOKEN_SECRET || process.env.PRV_TOKEN,
+      { expiresIn: "7d" }
+    );
+
+    // Save refresh token to user
+    user.refreshToken = refreshToken;
+
+    // Save token if provided in payload (instead of FCM token)
+    const clientToken = payload.accessToken || payload.token;
+    if (clientToken) {
+      // The schema does not officially have fcmToken, but if it did or you use strict: false:
+      user.fcmToken = clientToken; 
+    }
+    
+    await user.save({ session });
+    await session.commitTransaction();
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    };
+
+    const loginUserInfo = {
+      id: user._id,
+      email: user.email,
+      userName: user.userName,
+      type: payload.provider.toLowerCase(), // indicates which type of account (google/apple)
+    };
+
+    if (user.role) {
+      loginUserInfo.role = user.role;
+    }
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", refreshToken, cookieOptions)
+      .json({
+        success: true,
+        message: `${user.userName} logged in successfully`,
+        data: loginUserInfo,
+        accessToken,
+        refreshToken,
+      });
+
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Social media login error:", error);
+    return res.status(500).json({ error: true, message: error.message || "Internal server error" });
+  } finally {
+    session.endSession();
+  }
+};
