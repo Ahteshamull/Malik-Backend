@@ -981,13 +981,40 @@ export const socialMediaLogin = async (req, res) => {
     let user;
 
     if (!isUserExist) {
+      // Validate required fields for new social media account
+      const requiredFields = [
+        "phone", "country", "address", "latitude", "longitude",
+        "experience", "ageRange", "gender", "image", "travelStyle"
+      ];
+      
+      const missingFields = requiredFields.filter(field => !payload[field]);
+      
+      if (missingFields.length > 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ 
+          error: true, 
+          message: "Additional information is required to create a new account.",
+          missingFields 
+        });
+      }
+
       // Create new user for social login
       const randomPassword = await bcrypt.hash(`social-${Date.now()}-${Math.random()}`, 10);
       const newUser = new userModel({
         userName: payload.name ? payload.name.trim().toLowerCase().replace(/\s+/g, '') + Math.floor(Math.random() * 1000) : `user${Date.now()}`,
         email: payload.email.toLowerCase().trim(),
         isVerify: true,
-        phone: payload.phone || `temp-${Date.now()}`,
+        phone: payload.phone,
+        country: payload.country,
+        address: payload.address,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        experience: payload.experience,
+        ageRange: payload.ageRange,
+        gender: payload.gender,
+        image: payload.image,
+        travelStyle: Array.isArray(payload.travelStyle) ? payload.travelStyle : [payload.travelStyle],
         password: randomPassword,
         confirmPassword: randomPassword,
         type: payload.provider.toLowerCase(),
@@ -995,6 +1022,17 @@ export const socialMediaLogin = async (req, res) => {
       user = await newUser.save({ session });
     } else {
       user = isUserExist;
+      
+      // If account exists but with a different provider/type
+      if (user.type && user.type !== payload.provider.toLowerCase()) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          error: true,
+          message: `Account already exists with ${user.type}. Please login using your ${user.type} account.`
+        });
+      }
+
       let isModified = false;
       
       // Mark as verified if they login via social media and were not verified
@@ -1003,8 +1041,8 @@ export const socialMediaLogin = async (req, res) => {
         isModified = true;
       }
       
-      // Update the type if it was not set or is 'credentials'
-      if (!user.type || user.type === "credentials") {
+      // Update the type if it was not set
+      if (!user.type) {
         user.type = payload.provider.toLowerCase();
         isModified = true;
       }
