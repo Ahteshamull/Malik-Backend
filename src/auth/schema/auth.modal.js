@@ -14,6 +14,10 @@ const userSchema = new Schema(
       unique: [true],
       trim: true,
     },
+    type: {
+      type: String,
+      default: "credentials",
+    },
 
     password: {
       type: String,

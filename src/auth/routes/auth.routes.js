@@ -14,6 +14,7 @@ import {
   deleteUser,
   deleteMyAccount,
   verifyRegistration,
+  socialMediaLogin,
 } from "../controller/auth.controller.js";
 import { authenticateToken } from "../../helper/middlewares/auth.middleware.js";
 import {
@@ -50,5 +51,8 @@ router.post("/current-user-login", currentUserLogin);
 router.delete("/delete-user", authenticateToken, deleteUser);
 //localhost:3000/api/v1/auth/delete-my-account
 router.delete("/delete-my-account", authenticateToken, deleteMyAccount);
+
+//localhost:3000/api/v1/auth/social-media-login
+router.post("/social-media-login", socialMediaLogin);
 
 export default router;
