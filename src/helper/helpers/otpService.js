@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const MAX_ATTEMPTS = 5;
 const LOCK_MINUTES = 10;

@@ -31,10 +31,10 @@ export const setCache = (key, value, ttl) => {
   const heapUsed = process.memoryUsage().heapUsed / 1024 / 1024;
   if (heapUsed > 200) {
     console.warn(
-      "Memory limit (200MB) reached, skipping caching or consider flushing.",
+      "Memory limit (200MB) reached, flushing cache.",
     );
-    // Optionally flush if it's too high
-    // cache.flushAll();
+    // Flush cache when memory gets high
+    cache.flushAll();
     return false;
   }
   return cache.set(key, value, ttl);
