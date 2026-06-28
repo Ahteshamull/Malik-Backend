@@ -6,6 +6,7 @@ import {
   updateOffer,
   deleteOffer,
   getCatagoryOffers,
+  getOffersByOfferCetagory,
 } from "../controller/offer.controller.js";
 import superAdminMiddleware from "../../helper/middlewares/superAdminMiddleware.js";
 import {
@@ -47,5 +48,8 @@ router.get("/get-cetagory-offers/:id", getCatagoryOffers);
 
 // localhost:3000/api/v1/offer/get-offer-by-id/:id
 router.get("/get-offer-by-id/:id", singleOffer);
+
+router.get("/get-offer-cetagory", getOffersByOfferCetagory);
+router.get("/get-offer-cetagory/:categoryName", getOffersByOfferCetagory);
 
 export default router;

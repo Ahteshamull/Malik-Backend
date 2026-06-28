@@ -29,6 +29,11 @@ cetagory: {
   promocode: {
     type: String,
   },
+  offerCetagory:{
+    type: String,
+    enum: ["Hotel", "Transport","Others"],
+    default: "Others",
+  },
     status: {
         type: String,
         enum: ["active", "inactive"],
