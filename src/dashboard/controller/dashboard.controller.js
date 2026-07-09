@@ -41,7 +41,7 @@ export const dashboard = async (req, res) => {
         .find({})
         .sort({ createdAt: -1 })
         .limit(10)
-        .select("name email role createdAt"),
+        .select("userName email phone createdAt"),
       getMonthlyData(userModel),
       getMonthlyData(Vendor),
     ]);
