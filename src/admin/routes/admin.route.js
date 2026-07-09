@@ -10,6 +10,7 @@ import {
   forgotPassAdmin,
   OTPVerifyAdmin,
   resetPasswordAdmin,
+  myProfile,
 } from "../controller/admin.controller.js";
 import {
   upload,
@@ -47,7 +48,11 @@ router.patch(
   updateAdminPersonalInfo,
 );
 
+//localhost:3000/api/v1/admin/my-profile
+router.get("/my-profile", authenticateToken, myProfile);
+
 //localhost:3000/api/v1/admin/change-password
+router.patch("/change-password", authenticateToken, adminChangePassword);
 router.put("/change-password", authenticateToken, adminChangePassword);
 
 //localhost:3000/api/v1/admin/delete-admin/:id

@@ -253,7 +253,7 @@ const adminChangePassword = async (req, res) => {
 
 const updateAdminPersonalInfo = async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name, userName, phone, dateOfBirth, country } = req.body;
     // Get admin ID from authenticated token instead of URL parameter
     const adminId = req.user?._id || req.user?.id;
 
@@ -282,9 +282,12 @@ const updateAdminPersonalInfo = async (req, res) => {
       admin.image = newImagePath;
     }
 
-    // Update name and phone if provided
-    if (name !== undefined) admin.name = name;
+    // Update name, phone, dateOfBirth, and country if provided
+    const finalName = name || userName;
+    if (finalName !== undefined) admin.name = finalName;
     if (phone !== undefined) admin.phone = phone;
+    if (dateOfBirth !== undefined) admin.dateOfBirth = dateOfBirth;
+    if (country !== undefined) admin.country = country;
 
     // Save updated admin
     await admin.save();
@@ -578,6 +581,38 @@ const resetPasswordAdmin = async (req, res) => {
   }
 };
 
+const myProfile = async (req, res) => {
+  try {
+    const adminId = req.user?.id || req.user?._id;
+
+    // Find admin by ID
+    const admin = await Admin.findById(adminId);
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    // Remove sensitive fields
+    admin.password = undefined;
+    admin.confirmPassword = undefined;
+    admin.refreshToken = undefined;
+
+    res.status(200).json({
+      success: true,
+      message: "Admin profile retrieved successfully",
+      data: admin,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server error while fetching admin profile",
+    });
+  }
+};
+
 export {
   createAdmin,
   adminLogin,
@@ -589,4 +624,6 @@ export {
   forgotPassAdmin,
   OTPVerifyAdmin,
   resetPasswordAdmin,
+  myProfile,
 };
+

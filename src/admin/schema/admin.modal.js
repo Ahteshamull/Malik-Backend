@@ -36,6 +36,12 @@ const adminSchema = new Schema(
     image: {
       type: String,
     },
+    dateOfBirth: {
+      type: String,
+    },
+    country: {
+      type: String,
+    },
     role: {
       type: String,
       enum: ["superAdmin", "admin"],
