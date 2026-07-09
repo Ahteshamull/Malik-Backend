@@ -283,8 +283,8 @@ const updateAdminPersonalInfo = async (req, res) => {
     }
 
     // Update name and phone if provided
-    if (name) admin.name = name;
-    if (phone) admin.phone = phone;
+    if (name !== undefined) admin.name = name;
+    if (phone !== undefined) admin.phone = phone;
 
     // Save updated admin
     await admin.save();
@@ -293,14 +293,12 @@ const updateAdminPersonalInfo = async (req, res) => {
     admin.password = undefined;
     admin.confirmPassword = undefined;
     admin.refreshToken = undefined;
- 
 
     res.status(200).json({
       success: true,
       message: "Admin updated successfully",
-      data: {
-        admin,
-      },
+      data: admin,
+      admin, // for backward compatibility
     });
   } catch (error) {
     res.status(500).json({
