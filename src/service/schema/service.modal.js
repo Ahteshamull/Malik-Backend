@@ -53,6 +53,27 @@ const serviceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Offer",
     },
+    venue: {
+      type: String,
+    },
+    ticketPrice: {
+      type: String, // Keeping as string to allow things like "Free" or ranges
+    },
+    ticketLink: {
+      type: String,
+    },
+    organiser: {
+      type: String,
+    },
+    ageRestriction: {
+      type: String,
+    },
+    dressCode: {
+      type: String,
+    },
+    parkingInfo: {
+      type: String,
+    },
     photoOfVisitor: [
       {
         type: String,
