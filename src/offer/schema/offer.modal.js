@@ -39,6 +39,12 @@ cetagory: {
         enum: ["active", "inactive"],
         default: "active",
     },
+    Refinements: [
+      {
+        title: { type: String },
+        images: [{ type: String }],
+      }
+    ]
 }, { timestamps: true });
 
 

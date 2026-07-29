@@ -13,7 +13,7 @@ const visitedSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Visited = mongoose.model("Visited", visitedSchema);

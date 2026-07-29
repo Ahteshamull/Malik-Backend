@@ -19,7 +19,7 @@ const router = Router();
 // localhost:3000/api/v1/offer/create-offer
 router.post(
   "/create-offer",
-  upload.single("image"),
+  upload.any(),
   errorCheck,
   superAdminMiddleware,
   createOffer,
@@ -34,7 +34,7 @@ router.get("/single-offer/:id", singleOffer);
 // localhost:3000/api/v1/offer/update-offer/:id
 router.patch(
   "/update-offer/:id",
-  upload.single("image"),
+  upload.any(),
   errorCheck,
   superAdminMiddleware,
   updateOffer,
