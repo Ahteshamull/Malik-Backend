@@ -8,6 +8,7 @@ import Cetagory from "../../cetagory/schema/cetagory.modal.js";
 import SubCetagory from "../../subCetagory/schema/cetagory.modal.js";
 import { autoAssignBadges } from "../../badges/controller/badge.controller.js";
 import Favorite from "../schema/favorite.modal.js";
+import Visited from "../schema/visited.modal.js";
 import { delCacheByPrefix } from "../../helper/cache.js";
 import Offer from "../../offer/schema/offer.modal.js";
 
@@ -187,8 +188,9 @@ export const allServices = async (req, res) => {
     const total = await Service.countDocuments(filter);
     const totalPages = Math.ceil(total / limitNum);
 
-    // Check if user is logged in to personalize favorites
+    // Check if user is logged in to personalize favorites and visited services
     let userFavorites = [];
+    let userVisited = [];
     const token =
       req.cookies?.accessToken ||
       req.cookies?.token ||
@@ -206,6 +208,9 @@ export const allServices = async (req, res) => {
         if (userId) {
           const favorites = await Favorite.find({ myId: userId });
           userFavorites = favorites.map((f) => f.favoriteService.toString());
+          
+          const visited = await Visited.find({ myId: userId });
+          userVisited = visited.map((v) => v.visitedService.toString());
         }
       } catch (err) {
         // Ignore token errors for public list
@@ -225,6 +230,7 @@ export const allServices = async (req, res) => {
     const servicesWithFavorites = services.map((service) => {
       const serviceObj = service.toObject();
       serviceObj.isFavourite = userFavorites.includes(service._id.toString());
+      serviceObj.isVisited = userVisited.includes(service._id.toString());
       return serviceObj;
     });
 
@@ -262,8 +268,9 @@ export const allServicesWithCetagory = async (req, res) => {
     const total = await Service.countDocuments(filter);
     const totalPages = Math.ceil(total / limitNum);
 
-    // Check if user is logged in to personalize favorites
+    // Check if user is logged in to personalize favorites and visited services
     let userFavorites = [];
+    let userVisited = [];
     const token =
       req.cookies?.accessToken ||
       req.cookies?.token ||
@@ -281,6 +288,9 @@ export const allServicesWithCetagory = async (req, res) => {
         if (userId) {
           const favorites = await Favorite.find({ myId: userId });
           userFavorites = favorites.map((f) => f.favoriteService.toString());
+
+          const visited = await Visited.find({ myId: userId });
+          userVisited = visited.map((v) => v.visitedService.toString());
         }
       } catch (err) {
         // Ignore token errors
@@ -300,6 +310,7 @@ export const allServicesWithCetagory = async (req, res) => {
     const servicesWithFavorites = services.map((service) => {
       const serviceObj = service.toObject();
       serviceObj.isFavourite = userFavorites.includes(service._id.toString());
+      serviceObj.isVisited = userVisited.includes(service._id.toString());
       return serviceObj;
     });
 
@@ -343,8 +354,9 @@ export const singleService = async (req, res) => {
       });
     }
 
-    // Check for personalized favorite status
+    // Check for personalized favorite and visited status
     let isFavourite = false;
+    let isVisited = false;
     const token =
       req.cookies?.accessToken ||
       req.cookies?.token ||
@@ -365,6 +377,12 @@ export const singleService = async (req, res) => {
             favoriteService: id,
           });
           isFavourite = !!favorite;
+
+          const visited = await Visited.findOne({
+            myId: userId,
+            visitedService: id,
+          });
+          isVisited = !!visited;
         }
       } catch (err) {
         // Ignore token errors
@@ -373,6 +391,7 @@ export const singleService = async (req, res) => {
 
     const serviceObj = service.toObject();
     serviceObj.isFavourite = isFavourite;
+    serviceObj.isVisited = isVisited;
 
     return res.status(200).json({
       success: true,
@@ -785,6 +804,105 @@ export const offerServices = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error fetching offer services",
+      error: error.message,
+    });
+  }
+};
+
+export const toggleVisitedService = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const { serviceId } = req.params;
+
+    if (!userId || !serviceId) {
+      return res.status(400).json({
+        success: false,
+        message: "User authentication required and service ID parameter is required",
+      });
+    }
+
+    // Check if the service exists
+    const service = await Service.findOne({ _id: serviceId, isDeleted: false });
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found",
+      });
+    }
+
+    // Check if already visited
+    const existingVisited = await Visited.findOne({
+      myId: userId,
+      visitedService: serviceId,
+    });
+
+    if (existingVisited) {
+      // Remove from visited list
+      await Visited.deleteOne({ _id: existingVisited._id });
+      return res.status(200).json({
+        success: true,
+        message: "Service removed from visited list successfully",
+        isVisited: false,
+      });
+    } else {
+      // Add to visited list
+      const visited = new Visited({
+        myId: userId,
+        visitedService: serviceId,
+      });
+      await visited.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Service added to visited list successfully",
+        isVisited: true,
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error toggling visited list",
+      error: error.message,
+    });
+  }
+};
+
+export const getMyVisitedServices = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
+    const visitedServices = await Visited.find({ myId: userId })
+      .populate({
+        path: "visitedService",
+        match: { isDeleted: false },
+        populate: [
+          { path: "cetagory", select: "name" },
+          { path: "subCetagory", select: "name" },
+          { path: "badges" },
+          { path: "offer" },
+        ],
+      })
+      .sort({ createdAt: -1 });
+
+    // Filter out if service was soft deleted or hard deleted
+    const validVisited = visitedServices.filter((v) => v.visitedService !== null);
+
+    return res.status(200).json({
+      success: true,
+      message: "Visited services retrieved successfully",
+      data: validVisited,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching visited services",
       error: error.message,
     });
   }

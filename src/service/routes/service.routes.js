@@ -11,6 +11,8 @@ import {
   weeklyFeaturedServices,
   offerServices,
   allServicesWithCetagory,
+  toggleVisitedService,
+  getMyVisitedServices,
 } from "../controller/service.controller.js";
 import superAdminMiddleware from "../../helper/middlewares/superAdminMiddleware.js";
 import { authenticateToken } from "../../helper/middlewares/auth.middleware.js";
@@ -95,6 +97,12 @@ router.delete(
   userMiddleware,
   removeFromFavorites,
 );
+
+// Add or remove a service from visited list (toggle)
+router.post("/add-visited/:serviceId", userMiddleware, toggleVisitedService);
+
+// Get all visited services
+router.get("/my-visited-services", userMiddleware, getMyVisitedServices);
 
 //localhost:3000/api/v1/service/weekly-featured-services
 // Get weekly featured services
