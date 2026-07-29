@@ -97,10 +97,11 @@ router.delete(
   userMiddleware,
   removeFromFavorites,
 );
-
+//localhost:3000/api/v1/service/add-visited/:id
 // Add or remove a service from visited list (toggle)
 router.post("/add-visited/:serviceId", userMiddleware, toggleVisitedService);
 
+//localhost:3000/api/v1/service/my-visited-services
 // Get all visited services
 router.get("/my-visited-services", userMiddleware, getMyVisitedServices);
 
