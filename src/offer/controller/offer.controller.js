@@ -15,8 +15,44 @@ export const createOffer = async (req, res) => {
       promocode,
       serviceLink,
       offerCetagory,
+      Refinements
     } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : req.body.image;
+
+    let image = req.body.image;
+    let parsedRefinements = [];
+
+    if (typeof Refinements === "string") {
+      try {
+        parsedRefinements = JSON.parse(Refinements);
+      } catch (e) {
+        console.error("Error parsing refinements");
+      }
+    } else if (Array.isArray(Refinements)) {
+      parsedRefinements = Refinements;
+    }
+
+    if (req.files && req.files.length > 0) {
+      // Find main image
+      const mainImageFile = req.files.find(f => f.fieldname === 'image');
+      if (mainImageFile) {
+        image = `/uploads/${mainImageFile.filename}`;
+      }
+
+      // Map refinement images
+      req.files.forEach(file => {
+        if (file.fieldname.startsWith('refinement_image_')) {
+          const index = parseInt(file.fieldname.split('_')[2]);
+          if (!isNaN(index) && parsedRefinements[index]) {
+             if (!parsedRefinements[index].images) {
+                 parsedRefinements[index].images = [];
+             }
+             parsedRefinements[index].images.push(`/uploads/${file.filename}`);
+          }
+        }
+      });
+    } else if (req.file) {
+      image = `/uploads/${req.file.filename}`;
+    }
 
     const offer = new Offer({
       title,
@@ -29,6 +65,7 @@ export const createOffer = async (req, res) => {
       promocode,
       serviceLink,
       offerCetagory,
+      Refinements: parsedRefinements
     });
 
     await offer.save();
@@ -102,7 +139,48 @@ export const updateOffer = async (req, res) => {
 
     const updateData = { ...req.body };
 
-    if (req.file) {
+    let parsedRefinements = [];
+    if (typeof req.body.Refinements === "string") {
+      try {
+        parsedRefinements = JSON.parse(req.body.Refinements);
+      } catch (e) {
+        console.error("Error parsing refinements");
+      }
+    } else if (Array.isArray(req.body.Refinements)) {
+      parsedRefinements = req.body.Refinements;
+    }
+
+    if (parsedRefinements.length > 0 || req.body.Refinements) {
+       updateData.Refinements = parsedRefinements;
+    }
+
+    if (req.files && req.files.length > 0) {
+      const mainImageFile = req.files.find(f => f.fieldname === 'image');
+      if (mainImageFile) {
+        const newImagePath = `/uploads/${mainImageFile.filename}`;
+        // Delete old image file if it exists
+        if (offer.image && offer.image.startsWith("/uploads/")) {
+          const oldImagePath = path.join(process.cwd(), offer.image);
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+          }
+        }
+        updateData.image = newImagePath;
+      }
+
+      // Map refinement images
+      req.files.forEach(file => {
+        if (file.fieldname.startsWith('refinement_image_')) {
+          const index = parseInt(file.fieldname.split('_')[2]);
+          if (!isNaN(index) && updateData.Refinements && updateData.Refinements[index]) {
+             if (!updateData.Refinements[index].images) {
+                 updateData.Refinements[index].images = [];
+             }
+             updateData.Refinements[index].images.push(`/uploads/${file.filename}`);
+          }
+        }
+      });
+    } else if (req.file) {
       const newImagePath = `/uploads/${req.file.filename}`;
       // Delete old image file if it exists
       if (offer.image && offer.image.startsWith("/uploads/")) {
