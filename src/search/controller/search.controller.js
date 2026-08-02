@@ -1,4 +1,5 @@
 import User from "../../auth/schema/auth.modal.js";
+import SearchLog from "../../analytics/schema/searchLog.modal.js";
 
 const globalSearch = async (req, res) => {
   try {
@@ -8,6 +9,10 @@ const globalSearch = async (req, res) => {
       limit = 10,
       searchType = "all", // all, users
     } = req.query;
+
+    if (query && query.trim()) {
+      await SearchLog.create({ query: query.trim(), searchType });
+    }
 
     const searchRegex = query ? { $regex: query, $options: "i" } : null;
     const results = {
@@ -69,6 +74,10 @@ const specificSearch = async (req, res) => {
       query: collection = "all", // users | all
       searchType: keyword = "", // actual search text
     } = req.query;
+
+    if (keyword && keyword.trim()) {
+      await SearchLog.create({ query: keyword.trim(), searchType: collection });
+    }
 
     // ✅ validate collection
     const validCollections = [
