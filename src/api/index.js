@@ -20,7 +20,6 @@ import analytics from "../analytics/routes/index.js";
 import esim from "../esim/routes/index.js";
 import notFound from "../helper/middlewares/notFound.js";
 
-
 const router = express.Router();
 const baseurl = process.env.BASE_URL || "/api/v1";
 
@@ -40,8 +39,8 @@ router.use(baseurl, cetagory);
 router.use(baseurl, subCetagory);
 router.use(baseurl, service);
 router.use(baseurl, badge);
-router.use(baseurl, offer); 
-router.use(baseurl, analytics); 
+router.use(baseurl, offer);
+router.use(baseurl, analytics);
 router.use(baseurl, esim);
 
 // 404 handler
