@@ -4,7 +4,7 @@ export const createBadge = async (req, res) => {
   try {
     const { title, introDescription, footerReassuranceText } = req.body;
 
-    let { isModalEnabled, showNote, criteriaList, icon } = req.body;
+    let { isModalEnabled, showNote, criteriaList, icon, automatedConditions } = req.body;
 
     // Convert form-data checkboxes/strings to boolean
     isModalEnabled =
@@ -27,6 +27,27 @@ export const createBadge = async (req, res) => {
       }
     }
 
+    // Parse automatedConditions if it's a string (common in form-data)
+    if (typeof automatedConditions === "string") {
+      try {
+        automatedConditions = JSON.parse(automatedConditions);
+      } catch (e) {
+        automatedConditions = undefined;
+      }
+    }
+
+    // Fallback if they are passed directly in body
+    if (!automatedConditions) {
+       const { minRating, minReviews, maxResponseTimeHours } = req.body;
+       if (minRating !== undefined || minReviews !== undefined || maxResponseTimeHours !== undefined) {
+          automatedConditions = {
+            minRating: minRating ? Number(minRating) : 0,
+            minReviews: minReviews ? Number(minReviews) : 0,
+            maxResponseTimeHours: maxResponseTimeHours !== undefined && maxResponseTimeHours !== "" && maxResponseTimeHours !== "null" ? Number(maxResponseTimeHours) : null,
+          };
+       }
+    }
+
     const badge = await Badge.create({
       title,
       icon,
@@ -35,7 +56,12 @@ export const createBadge = async (req, res) => {
       criteriaList,
       showNote,
       footerReassuranceText,
+      ...(automatedConditions && { automatedConditions }),
     });
+
+    // Trigger background re-evaluation for existing services
+    reEvaluateServicesForBadge(badge._id).catch(err => console.error("Error in background badge assignment:", err));
+
     return res
       .status(201)
       .json({ success: true, message: "Badge created successfully", badge });
@@ -159,6 +185,36 @@ export const autoAssignBadges = async (serviceId) => {
     console.error("Error auto-assigning badges:", error);
   }
 };
+
+export const reEvaluateServicesForBadge = async (badgeId) => {
+  try {
+    const mongoose = (await import("mongoose")).default;
+    const Service = mongoose.model("Service");
+    const Badge = (await import("../schema/badges.modal.js")).default;
+    
+    const badge = await Badge.findById(badgeId);
+    if (!badge || !badge.automatedConditions) return;
+    
+    const cond = badge.automatedConditions;
+    
+    // Find services that AT LEAST match this badge's minimum conditions
+    const query = { isDeleted: false };
+    if (cond.minRating > 0) query.averageRating = { $gte: cond.minRating };
+    if (cond.minReviews > 0) query.totalReviews = { $gte: cond.minReviews };
+    if (cond.maxResponseTimeHours !== null) query.responseTimeHours = { $lte: cond.maxResponseTimeHours };
+    
+    const servicesToUpdate = await Service.find(query).select("_id");
+    
+    // For each service that matches, run the full autoAssign logic to ensure it doesn't conflict with other badges
+    for (const service of servicesToUpdate) {
+      await autoAssignBadges(service._id);
+    }
+    console.log(`Badge ${badge.title} auto-assigned to ${servicesToUpdate.length} eligible services.`);
+  } catch (error) {
+    console.error("Error re-evaluating services for badge:", error);
+  }
+};
+
 
 export const getAllBadges = async (req, res) => {
   try {
