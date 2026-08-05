@@ -2,15 +2,16 @@ import Badge from "../schema/badges.modal.js";
 
 export const createBadge = async (req, res) => {
   try {
-    const {
-      title,
-      isModalEnabled,
-      introDescription,
-      showNote,
-      footerReassuranceText,
-    } = req.body;
+    const { title, introDescription, footerReassuranceText } = req.body;
 
-    let { criteriaList, icon } = req.body;
+    let { isModalEnabled, showNote, criteriaList, icon } = req.body;
+
+    // Convert form-data checkboxes/strings to boolean
+    isModalEnabled =
+      isModalEnabled === "on" ||
+      isModalEnabled === "true" ||
+      isModalEnabled === true;
+    showNote = showNote === "on" || showNote === "true" || showNote === true;
 
     // Handle File Upload for Main Icon
     if (req.files && req.files.icon) {
@@ -39,13 +40,11 @@ export const createBadge = async (req, res) => {
       .status(201)
       .json({ success: true, message: "Badge created successfully", badge });
   } catch (error) {
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -70,11 +69,13 @@ export const addCriteriaToBadge = async (req, res) => {
       {
         $push: { criteriaList: { icon, text } },
       },
-      { new: true }
+      { new: true },
     );
 
     if (!badge) {
-      return res.status(404).json({ success: false, message: "Badge not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Badge not found" });
     }
 
     return res.status(200).json({
@@ -95,7 +96,7 @@ export const autoAssignBadges = async (serviceId) => {
   try {
     const mongoose = (await import("mongoose")).default;
     const Service = mongoose.model("Service");
-    
+
     const service = await Service.findById(serviceId);
     if (!service) return;
 
@@ -130,7 +131,7 @@ export const autoAssignBadges = async (serviceId) => {
           // Compare difficulty to keep the "highest" level badge of this title
           const existing = bestBadgesByTitle[title].automatedConditions;
 
-          // A badge is "better" if it has higher rating requirements, 
+          // A badge is "better" if it has higher rating requirements,
           // or same rating but higher review requirements,
           // or same rating/reviews but stricter response time.
           const isBetter =
@@ -154,7 +155,6 @@ export const autoAssignBadges = async (serviceId) => {
 
     // Update service's badges arrays with only the earned ones
     await Service.findByIdAndUpdate(serviceId, { badges: earnedBadges });
-    
   } catch (error) {
     console.error("Error auto-assigning badges:", error);
   }
@@ -197,7 +197,9 @@ export const deleteBadge = async (req, res) => {
     const { id } = req.params;
     const badge = await Badge.findByIdAndDelete(id);
     if (!badge) {
-      return res.status(404).json({ success: false, message: "Badge not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Badge not found" });
     }
     return res.status(200).json({
       success: true,
@@ -212,13 +214,14 @@ export const deleteBadge = async (req, res) => {
   }
 };
 
-
 export const singleBadge = async (req, res) => {
   try {
     const { id } = req.params;
     const badge = await Badge.findById(id);
     if (!badge) {
-      return res.status(404).json({ success: false, message: "Badge not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Badge not found" });
     }
     return res.status(200).json({
       success: true,
