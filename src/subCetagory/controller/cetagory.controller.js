@@ -53,7 +53,13 @@ export const allSubCetagory = async (req, res) => {
     }
 
     // Handle category filtering by name or ID
-    const targetCategory = cetagory || category;
+    let targetCategory = cetagory || category;
+    
+    // Fix for "Eat&Drink" when '&' is not URL encoded in frontend query params
+    if (targetCategory === "Eat" || targetCategory === "Eat ") {
+      targetCategory = "Eat&Drink";
+    }
+
     if (targetCategory) {
       // Check if it's a valid ObjectId first
       if (mongoose.Types.ObjectId.isValid(targetCategory)) {

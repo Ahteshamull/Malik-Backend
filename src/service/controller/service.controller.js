@@ -162,10 +162,16 @@ export const allServices = async (req, res) => {
     }
 
     // Handle Category lookup by name
-    const targetCategory =
+    let targetCategory =
       cetagoryQuery ||
       categoryQuery ||
       (type === "cetagory" || type === "category" ? name : null);
+      
+    // Fix for "Eat&Drink" when '&' is not URL encoded in frontend query params
+    if (targetCategory === "Eat" || targetCategory === "Eat ") {
+      targetCategory = "Eat&Drink";
+    }
+
     if (targetCategory) {
       const cat = await Cetagory.findOne({
         name: { $regex: new RegExp(`^${targetCategory}$`, "i") },
