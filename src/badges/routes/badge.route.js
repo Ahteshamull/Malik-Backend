@@ -2,7 +2,6 @@ import { Router } from "express";
 
 import {
   createBadge,
-  addCriteriaToBadge,
   getAllBadges,
   singleBadge,
   deleteBadge,
@@ -20,20 +19,10 @@ router.post(
   "/create-badge",
   upload.fields([
     { name: "icon", maxCount: 1 },
-    { name: "criteriaList", maxCount: 10 },
   ]),
   errorCheck,
   superAdminMiddleware,
   createBadge,
-);
-
-// localhost:3000/api/v1/badge/add-criteria/:id
-router.patch(
-  "/add-criteria/:id",
-  upload.single("icon"),
-  errorCheck,
-  superAdminMiddleware,
-  addCriteriaToBadge,
 );
 
 // localhost:3000/api/v1/badge/all-badges

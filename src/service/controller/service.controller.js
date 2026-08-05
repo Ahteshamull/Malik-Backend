@@ -6,7 +6,6 @@ import jwt from "jsonwebtoken";
 import Service from "../schema/service.modal.js";
 import Cetagory from "../../cetagory/schema/cetagory.modal.js";
 import SubCetagory from "../../subCetagory/schema/cetagory.modal.js";
-import { autoAssignBadges } from "../../badges/controller/badge.controller.js";
 import Favorite from "../schema/favorite.modal.js";
 import Visited from "../schema/visited.modal.js";
 import { delCacheByPrefix } from "../../helper/cache.js";
@@ -56,6 +55,20 @@ export const createService = async (req, res) => {
       }
     }
 
+    // Parse badges if sent as a string (common in form-data array)
+    if (typeof serviceData.badges === "string") {
+      try {
+        serviceData.badges = JSON.parse(serviceData.badges);
+      } catch (e) {
+        // If it's a single badge ID string, convert to array
+        if (serviceData.badges.trim() !== "") {
+          serviceData.badges = [serviceData.badges];
+        } else {
+          serviceData.badges = [];
+        }
+      }
+    }
+
     // Convert numeric fields from strings if necessary
     ["averageRating", "totalReviews", "responseTimeHours"].forEach((field) => {
       if (typeof serviceData[field] === "string") {
@@ -91,9 +104,6 @@ export const createService = async (req, res) => {
     }
 
     const service = await Service.create(serviceData);
-
-    // Automatically check and assign badges to the new service
-    await autoAssignBadges(service._id);
 
     // Populate category and subcategory
     await service.populate("cetagory", "name");
@@ -457,6 +467,19 @@ export const updateService = async (req, res) => {
       }
     }
 
+    // Parse badges if sent as a string
+    if (typeof updateData.badges === "string") {
+      try {
+        updateData.badges = JSON.parse(updateData.badges);
+      } catch (e) {
+        if (updateData.badges.trim() !== "") {
+          updateData.badges = [updateData.badges];
+        } else {
+          updateData.badges = [];
+        }
+      }
+    }
+
     // Convert numeric fields from strings if necessary
     ["averageRating", "totalReviews", "responseTimeHours"].forEach((field) => {
       if (typeof updateData[field] === "string") {
@@ -510,9 +533,6 @@ export const updateService = async (req, res) => {
         message: "Service not found",
       });
     }
-
-    // Trigger automatic badge assignment evaluation when service is updated
-    await autoAssignBadges(service._id);
 
     // Fetch again to get fully populated badges
     const updatedService = await Service.findById(service._id)
