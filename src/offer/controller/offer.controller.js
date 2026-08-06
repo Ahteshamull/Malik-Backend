@@ -55,6 +55,7 @@ export const createOffer = async (req, res) => {
       image = `/uploads/${req.file.filename}`;
     }
 
+    const isFeaturedVal = isFeatured === "true" || isFeatured === true;
     const offer = new Offer({
       title,
       description,
@@ -66,7 +67,8 @@ export const createOffer = async (req, res) => {
       promocode,
       serviceLink,
       offerCetagory,
-      isFeatured: isFeatured === "true" || isFeatured === true,
+      isFeatured: isFeaturedVal,
+      featuredAt: isFeaturedVal ? new Date() : null,
       Refinements: parsedRefinements
     });
 
@@ -142,6 +144,7 @@ export const updateOffer = async (req, res) => {
     const updateData = { ...req.body };
     if (updateData.isFeatured !== undefined) {
       updateData.isFeatured = updateData.isFeatured === "true" || updateData.isFeatured === true;
+      updateData.featuredAt = updateData.isFeatured ? new Date() : null;
     }
 
     let parsedRefinements = [];
@@ -356,6 +359,13 @@ export const getOffersByOfferCetagory = async (req, res) => {
 
 export const getFeaturedOffers = async (req, res) => {
   try {
+    // Auto-expire offers featured more than 7 days ago
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    await Offer.updateMany(
+      { isFeatured: true, featuredAt: { $lt: sevenDaysAgo } },
+      { $set: { isFeatured: false, featuredAt: null } }
+    );
+
     const offers = await Offer.find({ isFeatured: true, status: "active" })
       .populate("cetagory", "name")
       .sort({ createdAt: -1 });
