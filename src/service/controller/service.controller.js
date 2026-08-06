@@ -10,6 +10,7 @@ import Favorite from "../schema/favorite.modal.js";
 import Visited from "../schema/visited.modal.js";
 import { delCacheByPrefix } from "../../helper/cache.js";
 import Offer from "../../offer/schema/offer.modal.js";
+import FeaturedSection from "../../featured/schema/featured.modal.js";
 
 export const createService = async (req, res) => {
   try {
@@ -747,6 +748,37 @@ export const removeFromFavorites = async (req, res) => {
 
 export const weeklyFeaturedServices = async (req, res) => {
   try {
+    // 1. Fetch all services marked as featured
+    const featuredServices = await Service.find({
+      isFeatured: true,
+      isDeleted: false,
+    })
+      .populate("cetagory", "name")
+      .populate("subCetagory", "name")
+      .populate("badges")
+      .populate("offer")
+      .sort({ updatedAt: -1 });
+
+    // 2. Fetch all offers marked as featured
+    const featuredOffers = await Offer.find({
+      isFeatured: true,
+      status: "active",
+    })
+      .populate("cetagory", "name")
+      .sort({ createdAt: -1 });
+
+    // Combine them in a single flat array
+    const combinedData = [...featuredServices, ...featuredOffers];
+
+    if (combinedData.length > 0) {
+      return res.status(200).json({
+        success: true,
+        message: "Weekly featured services and offers retrieved successfully (dynamic)",
+        data: combinedData,
+      });
+    }
+
+    // 3. Fallback: category-based default fallback
     const categories = await Cetagory.find();
     let allFeaturedServices = [];
 

@@ -15,7 +15,8 @@ export const createOffer = async (req, res) => {
       promocode,
       serviceLink,
       offerCetagory,
-      Refinements
+      Refinements,
+      isFeatured
     } = req.body;
 
     let image = req.body.image;
@@ -65,6 +66,7 @@ export const createOffer = async (req, res) => {
       promocode,
       serviceLink,
       offerCetagory,
+      isFeatured,
       Refinements: parsedRefinements
     });
 
@@ -282,7 +284,15 @@ export const getOffersByOfferCetagory = async (req, res) => {
         "cetagory",
         "name",
       );
-      const groupedData = { Hotel: [], Transport: [], Others: [] };
+      const groupedData = {
+        "Eat & Drink": [],
+        Experiences: [],
+        Events: [],
+        Transport: [],
+        Accommodation: [],
+        Others: [],
+        Hotel: [],
+      };
 
       offers.forEach((offer) => {
         const category = offer.offerCetagory || "Others";
@@ -300,10 +310,27 @@ export const getOffersByOfferCetagory = async (req, res) => {
       });
     }
 
-    // Capitalize first letter to match Enum ("Hotel", "Transport", "Others")
-    categoryName =
-      categoryName.charAt(0).toUpperCase() +
-      categoryName.slice(1).toLowerCase();
+    // Map of normalized/lowercase names to their exact enum value
+    const categoryMap = {
+      "hotel": "Hotel",
+      "eat & drink": "Eat & Drink",
+      "experiences": "Experiences",
+      "events": "Events",
+      "transport": "Transport",
+      "accommodation": "Accommodation",
+      "others": "Others",
+      "other": "Others"
+    };
+
+    const normalizedKey = categoryName.toLowerCase();
+    if (categoryMap[normalizedKey]) {
+      categoryName = categoryMap[normalizedKey];
+    } else {
+      // Fallback: Capitalize first letter to match Enum ("Hotel", "Transport", "Others")
+      categoryName =
+        categoryName.charAt(0).toUpperCase() +
+        categoryName.slice(1).toLowerCase();
+    }
 
     const offers = await Offer.find({
       status: "active",
@@ -319,6 +346,26 @@ export const getOffersByOfferCetagory = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to retrieve offers",
+      error: error.message,
+    });
+  }
+};
+
+export const getFeaturedOffers = async (req, res) => {
+  try {
+    const offers = await Offer.find({ isFeatured: true, status: "active" })
+      .populate("cetagory", "name")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Featured offers retrieved successfully",
+      data: offers,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve featured offers",
       error: error.message,
     });
   }

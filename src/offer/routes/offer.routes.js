@@ -7,6 +7,7 @@ import {
   deleteOffer,
   getCatagoryOffers,
   getOffersByOfferCetagory,
+  getFeaturedOffers,
 } from "../controller/offer.controller.js";
 import superAdminMiddleware from "../../helper/middlewares/superAdminMiddleware.js";
 import {
@@ -51,5 +52,6 @@ router.get("/get-offer-by-id/:id", singleOffer);
 
 router.get("/get-offer-cetagory", getOffersByOfferCetagory);
 router.get("/get-offer-cetagory/:categoryName", getOffersByOfferCetagory);
+router.get("/featured-offers", getFeaturedOffers);
 
 export default router;

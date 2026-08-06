@@ -116,6 +116,11 @@ const serviceSchema = new mongoose.Schema(
     //   default: false,
     // },
 
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+
     isDeleted: {
       type: Boolean,
       default: false,

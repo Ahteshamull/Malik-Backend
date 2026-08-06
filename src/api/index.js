@@ -18,6 +18,7 @@ import badge from "../badges/routes/index.js";
 import offer from "../offer/routes/index.js";
 import analytics from "../analytics/routes/index.js";
 import esim from "../esim/routes/index.js";
+import featured from "../featured/routes/index.js";
 import notFound from "../helper/middlewares/notFound.js";
 
 const router = express.Router();
@@ -42,6 +43,7 @@ router.use(baseurl, badge);
 router.use(baseurl, offer);
 router.use(baseurl, analytics);
 router.use(baseurl, esim);
+router.use(baseurl, featured);
 
 // 404 handler
 router.use(baseurl, notFound);
