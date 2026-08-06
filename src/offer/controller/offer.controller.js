@@ -66,7 +66,7 @@ export const createOffer = async (req, res) => {
       promocode,
       serviceLink,
       offerCetagory,
-      isFeatured,
+      isFeatured: isFeatured === "true" || isFeatured === true,
       Refinements: parsedRefinements
     });
 
@@ -140,6 +140,9 @@ export const updateOffer = async (req, res) => {
     }
 
     const updateData = { ...req.body };
+    if (updateData.isFeatured !== undefined) {
+      updateData.isFeatured = updateData.isFeatured === "true" || updateData.isFeatured === true;
+    }
 
     let parsedRefinements = [];
     if (typeof req.body.Refinements === "string") {

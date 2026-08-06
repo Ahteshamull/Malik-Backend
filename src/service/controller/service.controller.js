@@ -77,6 +77,10 @@ export const createService = async (req, res) => {
       }
     });
 
+    if (serviceData.isFeatured !== undefined) {
+      serviceData.isFeatured = serviceData.isFeatured === "true" || serviceData.isFeatured === true;
+    }
+
     // Handle image upload if exists
     if (req.files) {
       if (req.files.image)
@@ -436,6 +440,10 @@ export const updateService = async (req, res) => {
       } catch (parseError) {
         console.error("Error parsing JSON data:", parseError);
       }
+    }
+
+    if (updateData.isFeatured !== undefined) {
+      updateData.isFeatured = updateData.isFeatured === "true" || updateData.isFeatured === true;
     }
 
     // Map common spelling variations to schema fields
