@@ -38,6 +38,9 @@ cetagory: {
     type: Boolean,
     default: false,
   },
+  featuredAt: {
+    type: Date,
+  },
     status: {
         type: String,
         enum: ["active", "inactive"],

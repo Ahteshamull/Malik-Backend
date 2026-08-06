@@ -120,6 +120,9 @@ const serviceSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    featuredAt: {
+      type: Date,
+    },
 
     isDeleted: {
       type: Boolean,

@@ -79,6 +79,7 @@ export const createService = async (req, res) => {
 
     if (serviceData.isFeatured !== undefined) {
       serviceData.isFeatured = serviceData.isFeatured === "true" || serviceData.isFeatured === true;
+      serviceData.featuredAt = serviceData.isFeatured ? new Date() : null;
     }
 
     // Handle image upload if exists
@@ -444,6 +445,7 @@ export const updateService = async (req, res) => {
 
     if (updateData.isFeatured !== undefined) {
       updateData.isFeatured = updateData.isFeatured === "true" || updateData.isFeatured === true;
+      updateData.featuredAt = updateData.isFeatured ? new Date() : null;
     }
 
     // Map common spelling variations to schema fields
@@ -756,6 +758,17 @@ export const removeFromFavorites = async (req, res) => {
 
 export const weeklyFeaturedServices = async (req, res) => {
   try {
+    // 0. Auto-expire services and offers featured more than 7 days ago
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    await Service.updateMany(
+      { isFeatured: true, featuredAt: { $lt: sevenDaysAgo } },
+      { $set: { isFeatured: false, featuredAt: null } }
+    );
+    await Offer.updateMany(
+      { isFeatured: true, featuredAt: { $lt: sevenDaysAgo } },
+      { $set: { isFeatured: false, featuredAt: null } }
+    );
+
     // 1. Fetch all services marked as featured
     const featuredServices = await Service.find({
       isFeatured: true,
