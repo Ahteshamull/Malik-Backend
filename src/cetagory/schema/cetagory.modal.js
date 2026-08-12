@@ -21,6 +21,12 @@ const cetagorySchema = new mongoose.Schema(
       type: String,
       default: "#0369a1",
     },
+    pageTitle: {
+      type: String,
+    },
+    pageDescription: {
+      type: String,
+    },
   },
   { timestamps: true },
 );
