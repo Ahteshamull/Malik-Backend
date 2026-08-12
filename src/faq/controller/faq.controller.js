@@ -2,7 +2,7 @@ import faqModel from "../schema/faq.modal.js";
 
 export const createFaq = async (req, res) => {
   try {
-    const { question, answer, category } = req.body;
+    const { question, answer, category, isActive, order } = req.body;
     const userId = req.user?.id || req.user?._id;
 
     if (!question || !answer) {
@@ -16,6 +16,8 @@ export const createFaq = async (req, res) => {
       question,
       answer,
       category: category || "general",
+      isActive: isActive !== undefined ? isActive : true,
+      order: order !== undefined ? order : 0,
       createdBy: userId,
     });
 
@@ -37,12 +39,16 @@ export const createFaq = async (req, res) => {
 
 export const getAllFaqs = async (req, res) => {
   try {
-    const { category, page = 1, limit = 10, search } = req.query;
+    const { category, page = 1, limit = 10, search, isActive } = req.query;
 
     let filter = {};
 
     if (category) {
       filter.category = category;
+    }
+
+    if (isActive !== undefined) {
+      filter.isActive = isActive === 'true' ? true : false;
     }
 
     if (search) {
@@ -136,7 +142,7 @@ export const updateFaq = async (req, res) => {
     updateData.updatedBy = userId;
 
     const updatedFaq = await faqModel
-      .findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, updateData, { returnDocument: 'after', runValidators: true })
       .populate("createdBy", "name email")
       .populate("updatedBy", "name email");
 

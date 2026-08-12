@@ -5,21 +5,25 @@ import { delCacheByPrefix } from "../../helper/cache.js";
 
 export const createCetagory = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, bgColor, textColor } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : null;
-    const cetagory = await Cetagory.create({ name, description, image });
+    const cetagory = await Cetagory.create({
+      name,
+      description,
+      image,
+      bgColor,
+      textColor,
+    });
 
     // Invalidate all category cache
     const baseUrl = process.env.BASE_URL || "/api/v1";
     delCacheByPrefix(`${baseUrl}/cetagory`);
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Cetagory created successfully",
-        data: cetagory,
-      });
+    res.status(201).json({
+      success: true,
+      message: "Cetagory created successfully",
+      data: cetagory,
+    });
   } catch (error) {
     if (error && error.name === "ValidationError") {
       return res.status(400).json({ success: false, message: error.message });
@@ -63,13 +67,11 @@ export const singleCetagory = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Cetagory not found" });
     }
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Cetagory retrieved successfully",
-        data: cetagory,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Cetagory retrieved successfully",
+      data: cetagory,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -83,8 +85,8 @@ export const updateCetagory = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Cetagory not found" });
     }
-    const { description, name } = req.body;
-    const updateData = { description, name };
+    const { description, name, bgColor, textColor } = req.body;
+    const updateData = { description, name, bgColor, textColor };
 
     if (req.file) {
       const newImagePath = `/uploads/${req.file.filename}`;
@@ -109,13 +111,11 @@ export const updateCetagory = async (req, res) => {
     const baseUrl = process.env.BASE_URL || "/api/v1";
     delCacheByPrefix(`${baseUrl}/cetagory`);
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Cetagory updated successfully",
-        data: updatedCetagory,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Cetagory updated successfully",
+      data: updatedCetagory,
+    });
   } catch (error) {
     if (error && error.name === "ValidationError") {
       return res.status(400).json({ success: false, message: error.message });
@@ -145,13 +145,11 @@ export const deleteCetagory = async (req, res) => {
     const baseUrl = process.env.BASE_URL || "/api/v1";
     delCacheByPrefix(`${baseUrl}/cetagory`);
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Cetagory deleted successfully",
-        data: cetagory,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Cetagory deleted successfully",
+      data: cetagory,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

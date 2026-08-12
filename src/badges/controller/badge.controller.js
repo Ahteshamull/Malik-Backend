@@ -2,7 +2,7 @@ import Badge from "../schema/badges.modal.js";
 
 export const createBadge = async (req, res) => {
   try {
-    const { title, introDescription, footerReassuranceText } = req.body;
+    const { title, introDescription, footerReassuranceText, bgColor, textColor } = req.body;
 
     let { isModalEnabled, showNote, criteriaList, icon } = req.body;
 
@@ -25,6 +25,8 @@ export const createBadge = async (req, res) => {
       introDescription,
       showNote,
       footerReassuranceText,
+      bgColor,
+      textColor,
     });
 
     return res

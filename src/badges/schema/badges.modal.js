@@ -31,6 +31,14 @@ const badgeSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    bgColor: {
+      type: String,
+      default: "#fffbeb",
+    },
+    textColor: {
+      type: String,
+      default: "#b45309",
+    },
   },
   { timestamps: true }
 );

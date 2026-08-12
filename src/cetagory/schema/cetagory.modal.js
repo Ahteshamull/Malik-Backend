@@ -13,6 +13,14 @@ const cetagorySchema = new mongoose.Schema(
     description: {
       type: String,
     },
+    bgColor: {
+      type: String,
+      default: "#f0f9ff",
+    },
+    textColor: {
+      type: String,
+      default: "#0369a1",
+    },
   },
   { timestamps: true },
 );
