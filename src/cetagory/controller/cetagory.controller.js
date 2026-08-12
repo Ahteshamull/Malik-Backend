@@ -5,7 +5,7 @@ import { delCacheByPrefix } from "../../helper/cache.js";
 
 export const createCetagory = async (req, res) => {
   try {
-    const { name, description, bgColor, textColor } = req.body;
+    const { name, description, bgColor, textColor, pageTitle, pageDescription } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : null;
     const cetagory = await Cetagory.create({
       name,
@@ -13,6 +13,8 @@ export const createCetagory = async (req, res) => {
       image,
       bgColor,
       textColor,
+      pageTitle,
+      pageDescription,
     });
 
     // Invalidate all category cache
@@ -85,8 +87,8 @@ export const updateCetagory = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Cetagory not found" });
     }
-    const { description, name, bgColor, textColor } = req.body;
-    const updateData = { description, name, bgColor, textColor };
+    const { description, name, bgColor, textColor, pageTitle, pageDescription } = req.body;
+    const updateData = { description, name, bgColor, textColor, pageTitle, pageDescription };
 
     if (req.file) {
       const newImagePath = `/uploads/${req.file.filename}`;
