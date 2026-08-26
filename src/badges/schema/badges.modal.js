@@ -39,6 +39,11 @@ const badgeSchema = new mongoose.Schema(
       type: String,
       default: "#b45309",
     },
+    position: {
+      type: String,
+      enum: ["top_left", "top_right", "bottom_left", "bottom_right"],
+      default: "top_left",
+    },
   },
   { timestamps: true }
 );
