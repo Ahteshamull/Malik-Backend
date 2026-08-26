@@ -9,7 +9,6 @@ const badgeSchema = new mongoose.Schema(
     },
     icon: {
       type: String, // Path or URL to the main badge icon
-      required: true,
     },
     isModalEnabled: {
       type: Boolean,
