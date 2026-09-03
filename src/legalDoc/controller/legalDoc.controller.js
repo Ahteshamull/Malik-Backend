@@ -30,7 +30,7 @@ const getKnownMetadata = (content) => {
       };
     case "termsAndCondition":
       return {
-        title: "Terms & Conditions",
+        title: "Terms of Use",
         subtitle: "User agreement, rights and service terms",
         icon: "description",
         iconColor: "0xFFFBBF24",
