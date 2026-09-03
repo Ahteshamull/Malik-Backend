@@ -21,7 +21,7 @@ const getKnownMetadata = (content) => {
       };
     case "legalPolicies":
       return {
-        title: "Legal Policies",
+        title: "Legal & Compliance",
         subtitle: "Compliance, operational policies and legal framework",
         icon: "gavel",
         iconColor: "0xFF90CDF4",
