@@ -19,9 +19,6 @@ import {
 import superAdminMiddleware from "../../helper/middlewares/superAdminMiddleware.js";
 import adminMiddleware from "../../helper/middlewares/authmiddleware.js";
 import { authenticateToken } from "../../helper/middlewares/auth.middleware.js";
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
 
 const router = express.Router();
 
