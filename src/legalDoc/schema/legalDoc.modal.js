@@ -43,6 +43,11 @@ const legalDocSchema = new Schema(
       default: "",
       trim: true,
     },
+    pdfUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     externalLinks: [
       {
         title: { type: String, trim: true, default: "" },

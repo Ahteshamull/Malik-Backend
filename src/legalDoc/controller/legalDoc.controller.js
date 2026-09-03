@@ -173,6 +173,7 @@ export const createPolicy = async (req, res) => {
       icon,
       iconColor,
       webUrl,
+      pdfUrl,
       externalLinks,
       order,
       isPublished,
@@ -232,6 +233,7 @@ export const createPolicy = async (req, res) => {
       icon: icon ? icon.trim() : "description",
       iconColor: iconColor ? iconColor.trim() : "0xFF5BD7BC",
       webUrl: webUrl ? webUrl.trim() : "",
+pdfUrl: pdfUrl ? pdfUrl.trim() : "",
       externalLinks: Array.isArray(parsedLinks) ? parsedLinks : [],
       order: Number(sortOrder) || 0,
       isPublished: isPublished !== undefined ? isPublished === true || isPublished === "true" : true,
@@ -269,6 +271,7 @@ export const updatePolicy = async (req, res) => {
       icon,
       iconColor,
       webUrl,
+      pdfUrl,
       externalLinks,
       order,
       isPublished,
@@ -297,6 +300,7 @@ export const updatePolicy = async (req, res) => {
     if (icon !== undefined) policy.icon = icon.trim();
     if (iconColor !== undefined) policy.iconColor = iconColor.trim();
     if (webUrl !== undefined) policy.webUrl = webUrl.trim();
+    if (pdfUrl !== undefined) policy.pdfUrl = pdfUrl.trim();
 
     if (externalLinks !== undefined) {
       let parsedLinks = externalLinks;
