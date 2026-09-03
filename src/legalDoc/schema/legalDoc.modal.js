@@ -23,6 +23,11 @@ const legalDocSchema = new Schema(
       type: String,
       required: [true, "Description is required"],
     },
+    image: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     icon: {
       type: String,
       default: "description",

@@ -145,7 +145,6 @@ export const getDoc = async (req, res) => {
       invalidateLegalCache();
     }
 
-    // For backwards compatibility with the app, return array with [doc]
     return res.status(200).json({
       success: true,
       message: "Legal document retrieved successfully",
@@ -170,6 +169,7 @@ export const createPolicy = async (req, res) => {
       content,
       subtitle,
       description,
+      image,
       icon,
       iconColor,
       webUrl,
@@ -210,17 +210,31 @@ export const createPolicy = async (req, res) => {
       sortOrder = maxDoc && maxDoc.order ? maxDoc.order + 1 : 1;
     }
 
+    // Image path from file upload or URL body
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : (image || "");
+
+    // Parse external links if passed as string in multipart form data
+    let parsedLinks = externalLinks;
+    if (typeof externalLinks === "string") {
+      try {
+        parsedLinks = JSON.parse(externalLinks);
+      } catch (_) {
+        parsedLinks = [];
+      }
+    }
+
     const newPolicy = new legalDocModel({
       title: title.trim(),
       content: slug,
       subtitle: subtitle ? subtitle.trim() : "",
       description,
+      image: imagePath,
       icon: icon ? icon.trim() : "description",
       iconColor: iconColor ? iconColor.trim() : "0xFF5BD7BC",
       webUrl: webUrl ? webUrl.trim() : "",
-      externalLinks: Array.isArray(externalLinks) ? externalLinks : [],
-      order: sortOrder,
-      isPublished: isPublished !== undefined ? isPublished : true,
+      externalLinks: Array.isArray(parsedLinks) ? parsedLinks : [],
+      order: Number(sortOrder) || 0,
+      isPublished: isPublished !== undefined ? isPublished === true || isPublished === "true" : true,
     });
 
     const saved = await newPolicy.save();
@@ -251,6 +265,7 @@ export const updatePolicy = async (req, res) => {
       content,
       subtitle,
       description,
+      image,
       icon,
       iconColor,
       webUrl,
@@ -271,14 +286,34 @@ export const updatePolicy = async (req, res) => {
     if (content !== undefined && content.trim() !== "") policy.content = content.trim();
     if (subtitle !== undefined) policy.subtitle = subtitle.trim();
     if (description !== undefined) policy.description = description;
+
+    // Handle image file upload or body string
+    if (req.file) {
+      policy.image = `/uploads/${req.file.filename}`;
+    } else if (image !== undefined) {
+      policy.image = image;
+    }
+
     if (icon !== undefined) policy.icon = icon.trim();
     if (iconColor !== undefined) policy.iconColor = iconColor.trim();
     if (webUrl !== undefined) policy.webUrl = webUrl.trim();
-    if (externalLinks !== undefined && Array.isArray(externalLinks)) {
-      policy.externalLinks = externalLinks;
+
+    if (externalLinks !== undefined) {
+      let parsedLinks = externalLinks;
+      if (typeof externalLinks === "string") {
+        try {
+          parsedLinks = JSON.parse(externalLinks);
+        } catch (_) {
+          parsedLinks = [];
+        }
+      }
+      policy.externalLinks = Array.isArray(parsedLinks) ? parsedLinks : [];
     }
+
     if (order !== undefined) policy.order = Number(order);
-    if (isPublished !== undefined) policy.isPublished = Boolean(isPublished);
+    if (isPublished !== undefined) {
+      policy.isPublished = isPublished === true || isPublished === "true";
+    }
 
     const updated = await policy.save();
     invalidateLegalCache();
@@ -407,7 +442,7 @@ export const togglePublishPolicy = async (req, res) => {
 export const createDoc = async (req, res) => {
   try {
     const { content } = req.params;
-    const { description, title, subtitle, icon, webUrl } = req.body;
+    const { description, title, subtitle, icon, webUrl, image } = req.body;
 
     if (!content || !description) {
       return res.status(400).json({
@@ -425,6 +460,9 @@ export const createDoc = async (req, res) => {
       if (subtitle) existingDoc.subtitle = subtitle;
       if (icon) existingDoc.icon = icon;
       if (webUrl) existingDoc.webUrl = webUrl;
+      if (image || req.file) {
+        existingDoc.image = req.file ? `/uploads/${req.file.filename}` : image;
+      }
       const updatedDoc = await existingDoc.save();
 
       invalidateLegalCache();
@@ -440,6 +478,7 @@ export const createDoc = async (req, res) => {
         content,
         subtitle: subtitle || meta.subtitle,
         description,
+        image: req.file ? `/uploads/${req.file.filename}` : (image || ""),
         icon: icon || meta.icon,
         iconColor: meta.iconColor,
         webUrl: webUrl || meta.webUrl,
