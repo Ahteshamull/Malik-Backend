@@ -1,15 +1,32 @@
-import express from "express";
-import { createDoc, getDoc } from "../controller/legalDoc.controller.js";
+﻿import express from "express";
+import {
+  createDoc,
+  getDoc,
+  getAllDocs,
+  createPolicy,
+  updatePolicy,
+  deletePolicy,
+  reorderPolicies,
+  togglePublishPolicy,
+} from "../controller/legalDoc.controller.js";
 import { cacheMiddleware } from "../../helper/middlewares/cache.middleware.js";
+import { upload } from "../../helper/middlewares/imageControlMiddleware.js";
 
 const router = express.Router();
 
-//localhost:3000/api/v1/legalDoc/create-doc/:content
-router.patch("/create-doc/:content", createDoc);
-
-//localhost:3000/api/v1/legalDoc/get-doc/:content
-// Cache for 24 hours (86400 seconds) as these docs don't change often
+// Public App APIs
+router.get("/all-docs", cacheMiddleware(3600), getAllDocs);
+router.get("/get-all-docs", cacheMiddleware(3600), getAllDocs);
 router.get("/get-doc/:content", cacheMiddleware(86400), getDoc);
 
-export default router;
+// Admin Dashboard APIs (with image upload support)
+router.post("/create-policy", upload.single("image"), createPolicy);
+router.patch("/update-policy/:id", upload.single("image"), updatePolicy);
+router.delete("/delete-policy/:id", deletePolicy);
+router.patch("/reorder", reorderPolicies);
+router.patch("/toggle-publish/:id", togglePublishPolicy);
 
+// Legacy backward compatibility
+router.patch("/create-doc/:content", upload.single("image"), createDoc);
+
+export default router;
