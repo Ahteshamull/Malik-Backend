@@ -74,5 +74,4 @@ router.post("/otp-verify", OTPVerifyAdmin);
 
 //localhost:3000/api/v1/admin/reset-password
 router.post("/reset-password", resetPasswordAdmin);
-
 export default router;
