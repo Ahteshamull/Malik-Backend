@@ -27,6 +27,12 @@ export const createUser = async (req, res) => {
     ageRange,
     gender,
     travelStyle,
+    marketingConsent,
+    isMarketingConsent,
+    marketingConsentStatus,
+    marketingConsentWording,
+    marketingConsentVersion,
+    marketingConsentTimestamp,
   } = req.body;
 
   // Basic required fields
@@ -106,6 +112,20 @@ export const createUser = async (req, res) => {
         ? [travelStyle]
         : [];
 
+    const consentGiven = Boolean(
+      marketingConsent === true ||
+      marketingConsent === "true" ||
+      isMarketingConsent === true ||
+      isMarketingConsent === "true" ||
+      marketingConsentStatus === "opted_in"
+    );
+
+    const consentText =
+      marketingConsentWording ||
+      "I’d like to receive news, offers, promotions and updates from Caribee by email and other electronic communications.";
+    const consentVer = marketingConsentVersion || "1.0";
+    const consentDate = marketingConsentTimestamp ? new Date(marketingConsentTimestamp) : new Date();
+
     const user = new userModel({
       userName: normalizedUserName,
       email: normalizedEmail,
@@ -120,6 +140,19 @@ export const createUser = async (req, res) => {
       ageRange,
       gender,
       travelStyle: travelStyleArray,
+      marketingConsent: consentGiven,
+      marketingConsentUpdatedAt: consentDate,
+      marketingConsentWording: consentText,
+      marketingConsentVersion: consentVer,
+      marketingConsentHistory: [
+        {
+          consent: consentGiven,
+          timestamp: consentDate,
+          wording: consentText,
+          version: consentVer,
+          source: "registration",
+        },
+      ],
       isVerify: false,
       registrationOtp: hashedOtp,
       otpExpiry,

@@ -111,6 +111,12 @@ export const updateProfile = async (req, res) => {
       address,
       latitude,
       longitude,
+      marketingConsent,
+      isMarketingConsent,
+      marketingConsentStatus,
+      marketingConsentWording,
+      marketingConsentVersion,
+      marketingConsentTimestamp,
     } = req.body;
 
     const existingUser = await userModel.findById(userId);
@@ -196,6 +202,44 @@ export const updateProfile = async (req, res) => {
       hasChanges = true;
     }
 
+    // Marketing Consent & Audit Records
+    let hasConsentParam = false;
+    let newConsentValue = false;
+
+    if (marketingConsent !== undefined) {
+      hasConsentParam = true;
+      newConsentValue = marketingConsent === true || marketingConsent === "true";
+    } else if (isMarketingConsent !== undefined) {
+      hasConsentParam = true;
+      newConsentValue = isMarketingConsent === true || isMarketingConsent === "true";
+    } else if (marketingConsentStatus !== undefined) {
+      hasConsentParam = true;
+      newConsentValue = marketingConsentStatus === "opted_in";
+    }
+
+    let consentAuditItem = null;
+    if (hasConsentParam && newConsentValue !== existingUser.marketingConsent) {
+      const consentDate = marketingConsentTimestamp ? new Date(marketingConsentTimestamp) : new Date();
+      const consentText =
+        marketingConsentWording ||
+        "I’d like to receive news, offers, promotions and updates from Caribee by email and other electronic communications.";
+      const consentVer = marketingConsentVersion || "1.0";
+
+      updateData.marketingConsent = newConsentValue;
+      updateData.marketingConsentUpdatedAt = consentDate;
+      updateData.marketingConsentWording = consentText;
+      updateData.marketingConsentVersion = consentVer;
+
+      consentAuditItem = {
+        consent: newConsentValue,
+        timestamp: consentDate,
+        wording: consentText,
+        version: consentVer,
+        source: "settings",
+      };
+      hasChanges = true;
+    }
+
     if (!hasChanges) {
       return res.status(200).json({
         success: true,
@@ -204,10 +248,15 @@ export const updateProfile = async (req, res) => {
       });
     }
 
+    const updateQuery = { $set: updateData };
+    if (consentAuditItem) {
+      updateQuery.$push = { marketingConsentHistory: consentAuditItem };
+    }
+
     const updatedUser = await userModel
       .findByIdAndUpdate(
         userId,
-        { $set: updateData },
+        updateQuery,
         { new: true, runValidators: true },
       )
       .select("-password -confirmPassword -refreshToken");

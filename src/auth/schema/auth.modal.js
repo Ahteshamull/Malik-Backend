@@ -96,6 +96,47 @@ const userSchema = new Schema(
       type: Date,
       index: { expires: 0 }, // Document will expire at the specific date/time set in this field
     },
+    // Marketing consent & audit records
+    marketingConsent: {
+      type: Boolean,
+      default: false,
+    },
+    marketingConsentUpdatedAt: {
+      type: Date,
+      default: null,
+    },
+    marketingConsentWording: {
+      type: String,
+      default: null,
+    },
+    marketingConsentVersion: {
+      type: String,
+      default: "1.0",
+    },
+    marketingConsentHistory: [
+      {
+        consent: {
+          type: Boolean,
+          required: true,
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+        wording: {
+          type: String,
+        },
+        version: {
+          type: String,
+          default: "1.0",
+        },
+        source: {
+          type: String,
+          enum: ["registration", "settings", "admin"],
+          default: "registration",
+        },
+      },
+    ],
     // stripeAccountId: { type: String },
     // isStripeConnected: { type: Boolean, default: false },
   },
