@@ -107,6 +107,7 @@ export const updateProfile = async (req, res) => {
       phone,
       dateOfBirth,
       country,
+      gender,
       image,
       address,
       latitude,
@@ -175,6 +176,11 @@ export const updateProfile = async (req, res) => {
 
     if (country !== undefined && country !== existingUser.country) {
       updateData.country = country;
+      hasChanges = true;
+    }
+
+    if (gender !== undefined && gender !== existingUser.gender) {
+      updateData.gender = typeof gender === "string" ? gender.toLowerCase() : gender;
       hasChanges = true;
     }
     

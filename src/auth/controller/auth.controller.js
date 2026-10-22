@@ -138,7 +138,7 @@ export const createUser = async (req, res) => {
       longitude,
       experience,
       ageRange,
-      gender,
+      gender: gender && typeof gender === "string" && gender.trim() ? gender.trim().toLowerCase() : undefined,
       travelStyle: travelStyleArray,
       marketingConsent: consentGiven,
       marketingConsentUpdatedAt: consentDate,
