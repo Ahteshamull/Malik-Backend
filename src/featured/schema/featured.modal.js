@@ -11,6 +11,10 @@ const FeaturedSectionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    subtitle: {
+      type: String,
+      default: "",
+    },
     items: [
       {
         itemType: {

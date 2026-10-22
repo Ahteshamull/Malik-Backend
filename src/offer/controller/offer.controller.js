@@ -295,13 +295,15 @@ export const getOffersByOfferCetagory = async (req, res) => {
         Experiences: [],
         Events: [],
         Transport: [],
-        Accommodation: [],
+        Stays: [],
         Others: [],
-        Hotel: [],
       };
 
       offers.forEach((offer) => {
-        const category = offer.offerCetagory || "Others";
+        let category = offer.offerCetagory || "Others";
+        if (category === "Hotel" || category === "Accommodation") {
+          category = "Stays";
+        }
         if (groupedData[category]) {
           groupedData[category].push(offer);
         } else {
@@ -318,30 +320,34 @@ export const getOffersByOfferCetagory = async (req, res) => {
 
     // Map of normalized/lowercase names to their exact enum value
     const categoryMap = {
-      "hotel": "Hotel",
+      "stays": "Stays",
+      "hotel": "Stays",
+      "accommodation": "Stays",
       "eat & drink": "Eat & Drink",
       "experiences": "Experiences",
       "events": "Events",
       "transport": "Transport",
-      "accommodation": "Accommodation",
       "others": "Others",
       "other": "Others"
     };
 
     const normalizedKey = categoryName.toLowerCase();
-    if (categoryMap[normalizedKey]) {
+    let queryFilter = { status: "active" };
+
+    if (normalizedKey === "stays" || normalizedKey === "hotel" || normalizedKey === "accommodation") {
+      categoryName = "Stays";
+      queryFilter.offerCetagory = { $in: ["Stays", "Hotel", "Accommodation"] };
+    } else if (categoryMap[normalizedKey]) {
       categoryName = categoryMap[normalizedKey];
+      queryFilter.offerCetagory = categoryName;
     } else {
-      // Fallback: Capitalize first letter to match Enum ("Hotel", "Transport", "Others")
       categoryName =
         categoryName.charAt(0).toUpperCase() +
         categoryName.slice(1).toLowerCase();
+      queryFilter.offerCetagory = categoryName;
     }
 
-    const offers = await Offer.find({
-      status: "active",
-      offerCetagory: categoryName,
-    }).populate("cetagory", "name");
+    const offers = await Offer.find(queryFilter).populate("cetagory", "name");
 
     return res.status(200).json({
       success: true,
