@@ -126,6 +126,16 @@ export const createUser = async (req, res) => {
     const consentVer = marketingConsentVersion || "1.0";
     const consentDate = marketingConsentTimestamp ? new Date(marketingConsentTimestamp) : new Date();
 
+    let normalizedGender = undefined;
+    if (gender && typeof gender === "string" && gender.trim()) {
+      const g = gender.trim().toLowerCase();
+      if (["male", "female", "other", "others", "prefer not to say"].includes(g)) {
+        normalizedGender = g;
+      } else if (g === "prefer not to disclose" || g === "none") {
+        normalizedGender = "prefer not to say";
+      }
+    }
+
     const user = new userModel({
       userName: normalizedUserName,
       email: normalizedEmail,
@@ -138,7 +148,7 @@ export const createUser = async (req, res) => {
       longitude,
       experience,
       ageRange,
-      gender: gender && typeof gender === "string" && gender.trim() ? gender.trim().toLowerCase() : undefined,
+      gender: normalizedGender,
       travelStyle: travelStyleArray,
       marketingConsent: consentGiven,
       marketingConsentUpdatedAt: consentDate,
@@ -336,7 +346,7 @@ export const login = async (req, res) => {
   if (!existingUser) {
     return res.status(404).json({
       error: true,
-      message: "You don't have any account",
+      message: "Invalid email or password. Please try again.",
     });
   }
 
@@ -355,7 +365,7 @@ export const login = async (req, res) => {
   if (!isPasswordValid) {
     return res.status(401).json({
       error: true,
-      message: "Invalid credentials email or password",
+      message: "Invalid email or password. Please try again.",
     });
   }
 

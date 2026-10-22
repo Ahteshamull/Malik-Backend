@@ -109,3 +109,62 @@ export const updateFeaturedSection = async (req, res) => {
     });
   }
 };
+
+// Get intro text for home/featured page
+export const getFeaturedIntro = async (req, res) => {
+  try {
+    const section = await FeaturedSection.findOne({ sectionKey: "featured_home_intro" });
+    return res.status(200).json({
+      success: true,
+      data: {
+        title: section?.title || "Discover the Caribbean differently",
+        subtitle: section?.subtitle || "Curated experiences, real culture, & trusted guidance",
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve featured intro text",
+      error: error.message,
+    });
+  }
+};
+
+// Update intro text for home/featured page (admin only)
+export const updateFeaturedIntro = async (req, res) => {
+  try {
+    const { title, subtitle } = req.body;
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: "Title is required",
+      });
+    }
+
+    const section = await FeaturedSection.findOneAndUpdate(
+      { sectionKey: "featured_home_intro" },
+      {
+        sectionKey: "featured_home_intro",
+        title: title.trim(),
+        subtitle: (subtitle || "").trim(),
+        items: [],
+      },
+      { upsert: true, returnDocument: 'after' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Featured page intro updated successfully",
+      data: {
+        title: section.title,
+        subtitle: section.subtitle,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update featured intro text",
+      error: error.message,
+    });
+  }
+};
