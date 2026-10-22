@@ -3,6 +3,8 @@ import {
   getFeaturedSections,
   getFeaturedSectionByKey,
   updateFeaturedSection,
+  getFeaturedIntro,
+  updateFeaturedIntro,
 } from "../controller/featured.controller.js";
 import superAdminMiddleware from "../../helper/middlewares/superAdminMiddleware.js";
 
@@ -11,6 +13,12 @@ const router = Router();
 // GET all featured sections (publicly accessible)
 // GET /api/v1/featured/all-sections
 router.get("/all-sections", getFeaturedSections);
+
+// GET / PUT featured page introductory text
+// GET /api/v1/featured/intro
+router.get("/intro", getFeaturedIntro);
+// PUT /api/v1/featured/intro
+router.put("/intro", superAdminMiddleware, updateFeaturedIntro);
 
 // GET a single featured section by key (publicly accessible)
 // GET /api/v1/featured/section/:sectionKey

@@ -31,7 +31,7 @@ cetagory: {
   },
   offerCetagory:{
     type: String,
-    enum: ["Hotel", "Eat & Drink", "Experiences", "Events", "Transport", "Accommodation", "Others", "Other"],
+    enum: ["Hotel", "Eat & Drink", "Experiences", "Events", "Transport", "Accommodation", "Stays", "Others", "Other"],
     default: "Others",
   },
   isFeatured: {
